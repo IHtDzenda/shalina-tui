@@ -1,8 +1,28 @@
 using System.Net;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace Core.Api.Maps
 {
+  public enum TileDirection
+  {
+    NorthWest,
+    North,
+    NorthEast,
+    West,
+    Center,
+    East,
+    SouthWest,
+    South,
+    SouthEast,
+  }
+  public struct Tile
+  {
+    public String filePath;
+    public String fileUrl;
+  }
   public class MapsApi
   {
     public MapProviders[] mapProviders = new MapProviders[]
@@ -10,7 +30,7 @@ namespace Core.Api.Maps
       new MapProviders
       {
         name = MapProviders.MapPropiversName.OpenStreetMap,
-        tileUrl = "https://a.tile.openstreetmap.org/",
+        tileUrl = "https://b.tile.openstreetmap.org/",
         urlSufix = "",
         cacheDirSuffix = "osm"
       },
@@ -22,11 +42,88 @@ namespace Core.Api.Maps
         cacheDirSuffix = "thf"
       },
     };
-    public MapProviders currentMapProvider { get; set; }
 
+    public MapProviders currentMapProvider { get; set; }
+    public Image<Rgba32> ConcatImages(Tile[] tiles)
+    {
+      int imageWidth = 256;
+      int imageHeight = 256;
+      using (var finalImage = new Image<Rgba32>(imageWidth * 3, imageHeight * 3))
+      {
+        for (int i = 0; i < tiles.Length; i++)
+        {
+          using (Image<Rgba32> img = Image.Load<Rgba32>(tiles[i].filePath))
+          {
+            int xPos = (i % 3) * imageWidth;
+            int yPos = (i / 3) * imageHeight;
+
+            finalImage.Mutate(ctx => ctx.DrawImage(img, new Point(xPos, yPos), 1f));
+          }
+        }
+
+        return finalImage;
+      }
+    }
     public MapsApi(MapProviders.MapPropiversName mapPropiversName)
     {
       currentMapProvider = mapProviders.FirstOrDefault(x => x.name == mapPropiversName) ?? mapProviders.First();
+    }
+    public Tile[] GetNeighbourTiles(double latitude, double longitude, int zoom)
+    {
+      int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
+      int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
+      Tile[] tiles = new Tile[9];
+      tiles[(int)TileDirection.Center] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX}-{tileY}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX}/{tileY}.png"
+      };
+      tiles[(int)TileDirection.South] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX}-{tileY + 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX}/{tileY + 1}.png"
+      };
+      tiles[(int)TileDirection.North] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX}-{tileY - 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX}/{tileY - 1}.png"
+      };
+      tiles[(int)TileDirection.West] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX - 1}-{tileY}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX - 1}/{tileY}.png"
+      };
+      tiles[(int)TileDirection.East] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX + 1}-{tileY}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX + 1}/{tileY}.png"
+      };
+      tiles[(int)TileDirection.NorthWest] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX - 1}-{tileY - 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX - 1}/{tileY - 1}.png"
+      };
+      tiles[(int)TileDirection.NorthEast] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX + 1}-{tileY - 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX + 1}/{tileY - 1}.png"
+      };
+      tiles[(int)TileDirection.SouthWest] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX - 1}-{tileY + 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX - 1}/{tileY + 1}.png"
+      };
+      tiles[(int)TileDirection.SouthEast] = new Tile
+      {
+        filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX + 1}-{tileY + 1}.png",
+        fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX + 1}/{tileY + 1}.png"
+      };
+      for (int i = 0; i < tiles.Length; i++)
+      {
+        string path = CheckForFileCache(tiles[i].filePath, tiles[i].fileUrl);
+        tiles[i].filePath = path;
+      }
+      return tiles;
     }
     public string GetTiles(double latitude, double longitude, int zoom)
     {
@@ -46,7 +143,9 @@ namespace Core.Api.Maps
       using (WebClient client = new WebClient())
       {
         Console.WriteLine($"Downloading {url}{currentMapProvider.urlSufix} to {filePath}");
-        client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36");
+        client.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36");
+        client.Headers.Add("Accept-Language", "en-US,en;q=0.9");
+        client.Headers.Add("Accept-Encoding", "gzip, deflate, br");
         client.DownloadFile(url + currentMapProvider.urlSufix, filePath);
       }
       return filePath;

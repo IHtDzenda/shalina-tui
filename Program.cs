@@ -1,8 +1,9 @@
-﻿using Core.Api.Maps;
+using Core.Api.Maps;
 using Spectre.Console;
 using Core;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Core.Debug;
 
 public class Program
 {
@@ -33,10 +34,11 @@ public class Program
     AnsiConsole.Write(new CanvasImage(path).MaxWidth(resolution));
   }
 
-  static string GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
+  static Tile[] GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
   {
     MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
-    return mapsApi.GetTiles(latitude, longitude, zoom);
+    Tile[] tiles = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
+    mapsApi.ConcatImages(tiles);
+    return tiles;
   }
-
 }
