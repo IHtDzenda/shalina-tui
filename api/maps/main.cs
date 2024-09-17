@@ -44,25 +44,22 @@ namespace Core.Api.Maps
     };
 
     public MapProviders currentMapProvider { get; set; }
-    public Image<Rgba32> ConcatImages(Tile[] tiles)
+    public Image<Rgba32> ConcatImages(Tile[] tiles, byte count = 3)
     {
-      int imageWidth = 256;
-      int imageHeight = 256;
-      using (var finalImage = new Image<Rgba32>(imageWidth * 3, imageHeight * 3))
+      const Int16 pixelCount = 256;
+      var finalImage = new Image<Rgba32>(pixelCount * count, pixelCount * count);
+      for (int i = 0; i < tiles.Length; i++)
       {
-        for (int i = 0; i < tiles.Length; i++)
+        using (Image<Rgba32> img = Image.Load<Rgba32>(tiles[i].filePath))
         {
-          using (Image<Rgba32> img = Image.Load<Rgba32>(tiles[i].filePath))
-          {
-            int xPos = (i % 3) * imageWidth;
-            int yPos = (i / 3) * imageHeight;
+          int xPos = (i % count) * pixelCount;
+          int yPos = (i / count) * pixelCount;
 
-            finalImage.Mutate(ctx => ctx.DrawImage(img, new Point(xPos, yPos), 1f));
-          }
+          finalImage.Mutate(ctx => ctx.DrawImage(img, new Point(xPos, yPos), 1f));
         }
-
-        return finalImage;
       }
+
+      return finalImage;
     }
     public MapsApi(MapProviders.MapPropiversName mapPropiversName)
     {

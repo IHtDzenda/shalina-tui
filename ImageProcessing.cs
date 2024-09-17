@@ -1,12 +1,13 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Spectre.Console;
 namespace Core
 {
   public class ImageProcessing
   {
     static bool PassThreshold(Rgba32 col)
     {
-      if (col.R > 200 && col.G < 200 && col.B < 200)
+      if ((col.R > 215 && col.G < 190 && col.B < 190) || col.R < 120 && col.G < 120 && col.B < 120)
       {
         return true;
       }
@@ -19,14 +20,34 @@ namespace Core
       {
         for (int y = 0; y < outImg.Height; y++)
         {
-          //outImg[x,y] = img[(int)(x * ((double)img.Width/(double)outImg.Width)), (int)(y* ((double)img.Height/(double)outImg.Height))];
-          if (PassThreshold(img[(int)(x * ((double)img.Width/(double)outImg.Width)), (int)(y* ((double)img.Height/(double)outImg.Height))]))
+          Int16 count = 0;
+          for (int testX = 0; testX < (img.Width / outImg.Width); testX++)
           {
-            outImg[x, y] = Color.Black;
+            for (int testY = 0; testY < (img.Height / outImg.Height); testY++)
+            {
+              //outImg[x,y] = img[(int)(x * ((double)img.Width/(double)outImg.Width)), (int)(y* ((double)img.Height/(double)outImg.Height))];
+              if (PassThreshold(img[(int)(x * ((double)img.Width / (double)outImg.Width)) + testX, (int)(y * ((double)img.Height / (double)outImg.Height)) + testY]))
+              {
+                count++;
+              }
+            }
           }
+          if( count > img.Height / outImg.Height)
+                outImg[x, y] = SixLabors.ImageSharp.Color.Black;
         }
       }
       return outImg;
+    }
+    public static CanvasImage ImageSharpToCanvasImage(Image img)
+    {
+      using (var stream = new MemoryStream())
+      {
+        img.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+        stream.Position = 0;
+
+        return new CanvasImage(stream);
+
+      }
     }
   }
 }
