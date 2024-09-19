@@ -1,18 +1,18 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using Spectre.Console;
-namespace Core
+
+namespace Core.Rendering
 {
   public class ImageProcessing
   {
-    static Rgba32? PassThreshold(Rgba32 col)
+    static Rgb24? PassThreshold(Rgb24 col)
     {
       if ((col.R > 190 && col.G < 120 && col.B < 120 && col.G > 40 && col.B > 40) || (col.R == 246))
       {
         return SixLabors.ImageSharp.Color.Red;
       }
 
-      else if (col.R < 120 && col.R == col.G && col.G == col.B)
+      else if (col.R < 130 && col.R == col.G && col.G == col.B)
       {
         return SixLabors.ImageSharp.Color.Black;
       }
@@ -29,16 +29,16 @@ namespace Core
 
       return null;
     }
-    public static Image Threshold(Image<Rgba32> img, Int16 resolution)
+    public static Image<Rgb24> Threshold(Image<Rgb24> img, Int16 resolution)
     {
-      resolution = (short) (resolution * 1);
-      var outImg = new Image<Rgba32>(resolution, resolution, new Rgba32(247, 247, 247, 255));
+      resolution = (short)(resolution * 1);
+      var outImg = new Image<Rgb24>(resolution, resolution, new Rgb24(247, 247, 247));
       for (int x = 0; x < outImg.Width; x++)
       {
         for (int y = 0; y < outImg.Height; y++)
         {
 
-          Rgba32?[] colors = new Rgba32?[(img.Width / outImg.Width) * (img.Height / outImg.Height)];
+          Rgb24?[] colors = new Rgb24?[(img.Width / outImg.Width) * (img.Height / outImg.Height)];
 
           for (int testX = 0; testX < (img.Width / outImg.Width); testX++)
           {
@@ -52,14 +52,16 @@ namespace Core
           {
             var possiblePixelColors = colors.Where(col => col != null)
               .GroupBy(n => n)
-              .Where(g => Math.Pow(g.Count(), 2) > (img.Width / outImg.Width) * (img.Height / outImg.Height) )
+              .Where(g => Math.Pow(g.Count(), 2) * 1 > (img.Width / outImg.Width) * (img.Height / outImg.Height))
               .OrderByDescending(g => g.Count())
               .OrderByDescending(g => (g.First() == SixLabors.ImageSharp.Color.SkyBlue || g.First() == SixLabors.ImageSharp.Color.PaleGreen) ? 0 : 1);
-            if(possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Red) && possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Black) ){
+
+            if (possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Red) && possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Black))
+            {
               outImg[x, y] = SixLabors.ImageSharp.Color.DarkRed;
               continue;
             }
-            Rgba32? newPixel = possiblePixelColors.First()?.Key;
+            Rgb24? newPixel = possiblePixelColors.First()?.Key;
             if (newPixel != null)
             {
               outImg[x, y] = newPixel.Value;
@@ -72,17 +74,6 @@ namespace Core
         }
       }
       return outImg;
-    }
-    public static CanvasImage ImageSharpToCanvasImage(Image img)
-    {
-      using (var stream = new MemoryStream())
-      {
-        img.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
-        stream.Position = 0;
-
-        return new CanvasImage(stream);
-
-      }
     }
   }
 }

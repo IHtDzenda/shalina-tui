@@ -37,20 +37,20 @@ namespace Core.Api.Maps
       new MapProviders
       {
         name = MapProviders.MapPropiversName.Thunderforest,
-        tileUrl = "https://a.tile.thunderforest.com/transport/",
+        tileUrl = "https://a.tile.thunderforest.com/transport-dark/",
         urlSufix = "?apikey=6e5478c8a4f54c779f85573c0e399391",//not mine :)
         cacheDirSuffix = "thf"
       },
     };
 
     public MapProviders currentMapProvider { get; set; }
-    public Image<Rgba32> ConcatImages(Tile[] tiles, byte count = 3)
+    public Image<Rgb24> ConcatImages(Tile[] tiles, byte count = 3)
     {
       const Int16 pixelCount = 256;
-      var finalImage = new Image<Rgba32>(pixelCount * count, pixelCount * count);
+      var finalImage = new Image<Rgb24>(pixelCount * count, pixelCount * count);
       for (int i = 0; i < tiles.Length; i++)
       {
-        using (Image<Rgba32> img = Image.Load<Rgba32>(tiles[i].filePath))
+        using (Image<Rgb24> img = Image.Load<Rgb24>(tiles[i].filePath))
         {
           int xPos = (i % count) * pixelCount;
           int yPos = (i / count) * pixelCount;

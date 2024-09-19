@@ -1,32 +1,34 @@
 using Core.Api.Maps;
 using Spectre.Console;
-using Core;
+using Core.Rendering;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 public static class Config
 {
   public static Int16 resolution = 50;
-  public static Byte zoom = 16;
+  public static Byte zoom = 14;
 }
 
 public class Program
 {
   static void Main(string[] args)
   {
-    double latitude = 50.0755;
-    double longitude = 14.4378;
+    double latitude = 50.0793075;
+    double longitude = 14.4054342;
     Console.WriteLine($"Location: Prague, Czech Republic | Latitude = {latitude}, Longitude = {longitude}");
-    Image<Rgba32> inputImage = GetOpenStreetMapTileUrl(latitude, longitude, Config.zoom);
-    AnsiConsole.Write(ImageProcessing.ImageSharpToCanvasImage(inputImage).MaxWidth(768));
+    Image<Rgb24> inputImage = GetOpenStreetMapTileUrl(latitude, longitude, Config.zoom);
+    //AnsiConsole.Write(new CanvasImageWithText(inputImage));
+    
 
-    var thresholdImg = ImageProcessing.Threshold(inputImage, Config.resolution);
-    CanvasImage image = ImageProcessing.ImageSharpToCanvasImage(thresholdImg);
+    Image<Rgb24> thresholdImg = ImageProcessing.Threshold(inputImage, Config.resolution);
+    CanvasImageWithText image = new CanvasImageWithText(thresholdImg);
     image.MaxWidth(Config.resolution);
+    image.AddText(new CanvasText(0, 0, ""));
     AnsiConsole.Write(image);
   }
 
-  static Image<Rgba32> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
+  static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
   {
     MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
     Tile[] tiles = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
