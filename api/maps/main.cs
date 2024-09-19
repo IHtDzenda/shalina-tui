@@ -176,7 +176,7 @@ namespace Core.Api.Maps
       }
       else if (os == OSPlatform.Linux)
       {
-        string homepath = Environment.GetEnvironmentVariable("HOME");
+        string homepath = Environment.GetEnvironmentVariable("HOME")!;
         cacheDir = homepath + @"/.cache/shalina/" + pathSuffix;
       }
       else if (os == OSPlatform.OSX)
