@@ -20,8 +20,8 @@ namespace Core.Api.Maps
   }
   public struct Tile
   {
-    public String filePath;
-    public String fileUrl;
+    public string filePath;
+    public string fileUrl;
   }
   public class MapsApi
   {
@@ -181,7 +181,7 @@ namespace Core.Api.Maps
       }
       else if (os == OSPlatform.OSX)
       {
-        throw new Exception("MacOS is not supported yet!");
+        throw new NotImplementedException("MacOS is not supported yet!");
       }
       if (Directory.Exists(cacheDir))
       {
