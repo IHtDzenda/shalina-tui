@@ -12,9 +12,9 @@ namespace Core.Rendering
   {
     public int x;
     public int y;
-    public String text;
+    public string text;
     public Rgb24 color;
-    public CanvasText(int x, int y, String text)
+    public CanvasText(int x, int y, string text)
     {
       this.x = x;
       this.y = y;
@@ -119,8 +119,6 @@ namespace Core.Rendering
         image.Mutate(i => i.Resize(width, height, resampler));
       }
 
-      Console.WriteLine(height);
-      Console.WriteLine(width);
       for (var y = 0; y < height; y++)
       {
         CanvasText? currentText = null;
@@ -128,21 +126,21 @@ namespace Core.Rendering
         {
           var color = image[x, y];
 
-          if (this.texts[x, y] != null)
+          if (this.texts[y, x] != null)
           {
-            currentText = this.texts[x, y];
+            currentText = this.texts[y, x];
           }
 
-          String pixel = "";
+          string pixel = "";
           if (currentText != null)
           {
             for (byte i = 0; i < this.PixelWidth; i++)
             {
-              if (((x - currentText.Value.x) * 2 + i) >= currentText.Value.text.Length)
+              if (((x - currentText.Value.x) * this.PixelWidth + i) >= currentText.Value.text.Length)
               {
                 break;
               }
-              pixel += currentText.Value.text[(x - currentText.Value.x) * 2 + i];
+              pixel += currentText.Value.text[(x - currentText.Value.x) * this.PixelWidth + i];
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');

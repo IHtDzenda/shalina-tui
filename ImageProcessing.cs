@@ -3,75 +3,135 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Core.Rendering
 {
-  public class ImageProcessing
+  public struct ColorScheme
   {
-    static Rgb24? PassThreshold(Rgb24 col)
+    public Rgb24 Water;
+    public Rgb24 Land;
+    public Rgb24 Grass;
+    public Rgb24 Trams;
+    public Rgb24 Buses;
+  }
+  public static class ImageProcessing
+  {
+    private static void PixelIterBox(Image<Rgb24> inputImg, Func<Rgb24, bool>[] predicates, Rgb24 color, Image<Rgb24> outImg)
     {
-      if ((col.R > 190 && col.G < 120 && col.B < 120 && col.G > 40 && col.B > 40) || (col.R == 246))
+      for (int y = 0; y < outImg.Height; y++)
       {
-        return SixLabors.ImageSharp.Color.Red;
-      }
-
-      else if (col.R < 130 && col.R == col.G && col.G == col.B)
-      {
-        return SixLabors.ImageSharp.Color.Black;
-      }
-
-      else if (col.R < 190 && col.G < 230 & col.B == 255)
-      {
-        return SixLabors.ImageSharp.Color.SkyBlue;
-      }
-
-      else if (col.R == 210 && col.G == 242 & col.B == 215)
-      {
-        return SixLabors.ImageSharp.Color.PaleGreen;
-      }
-
-      return null;
-    }
-    public static Image<Rgb24> Threshold(Image<Rgb24> img, Int16 resolution)
-    {
-      resolution = (short)(resolution * 1);
-      var outImg = new Image<Rgb24>(resolution, resolution, new Rgb24(247, 247, 247));
-      for (int x = 0; x < outImg.Width; x++)
-      {
-        for (int y = 0; y < outImg.Height; y++)
+        for (int x = 0; x < (outImg.Width / 2); x++)
         {
-
-          Rgb24?[] colors = new Rgb24?[(img.Width / outImg.Width) * (img.Height / outImg.Height)];
-
-          for (int testX = 0; testX < (img.Width / outImg.Width); testX++)
+          int count = 0;
+          for (int testX = 0; testX < (inputImg.Width / outImg.Width); testX++)
           {
-            for (int testY = 0; testY < (img.Height / outImg.Height); testY++)
+            for (int testY = 0; testY < (inputImg.Height / outImg.Height); testY++)
             {
-              //outImg[x,y] = img[(int)(x * ((double)img.Width/(double)outImg.Width)), (int)(y* ((double)img.Height/(double)outImg.Height))];
-              colors[testX * (img.Height / outImg.Height) + testY] = (PassThreshold(img[(int)(x * ((double)img.Width / (double)outImg.Width)) + testX, (int)(y * ((double)img.Height / (double)outImg.Height)) + testY]));
+              Rgb24 col = inputImg[(int)(x * 2 * ((double)inputImg.Width / (double)outImg.Width)) + testX, (int)(y * ((double)inputImg.Height / (double)outImg.Height)) + testY];
+              foreach (var predicate in predicates)
+              {
+                if (predicate(col))
+                {
+                  count++;
+                  break;
+                }
+              }
             }
           }
-          try
+          //if (Math.Pow(count, 2) > (inputImg.Width / outImg.Width) * (inputImg.Height / outImg.Height))
+          if (count > 1)
           {
-            var possiblePixelColors = colors.Where(col => col != null)
-              .GroupBy(n => n)
-              .Where(g => Math.Pow(g.Count(), 2) * 1 > (img.Width / outImg.Width) * (img.Height / outImg.Height))
-              .OrderByDescending(g => g.Count())
-              .OrderByDescending(g => (g.First() == SixLabors.ImageSharp.Color.SkyBlue || g.First() == SixLabors.ImageSharp.Color.PaleGreen) ? 0 : 1);
-
-            if (possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Red) && possiblePixelColors.Any(g => g.Key == SixLabors.ImageSharp.Color.Black))
-            {
-              outImg[x, y] = SixLabors.ImageSharp.Color.DarkRed;
-              continue;
-            }
-            Rgb24? newPixel = possiblePixelColors.First()?.Key;
-            if (newPixel != null)
-            {
-              outImg[x, y] = newPixel.Value;
-            }
-          }
-          catch
-          {
-            continue;
+            outImg[x * 2, y] = color;
+            outImg[x * 2 + 1, y] = color;
           }
         }
+      }
+    }
+    private static void DualPixelIterBox(Image<Rgb24> inputImg, Func<Rgb24, bool>[] predicates, Rgb24 mergeColor, Rgb24 color, Image<Rgb24> outImg)
+    {
+      for (int y = 0; y < outImg.Height; y++)
+      {
+        for (int x = 0; x < (outImg.Width / 2); x++)
+        {
+          int count = 0;
+          for (int testX = 0; testX < (inputImg.Width / outImg.Width); testX++)
+          {
+            for (int testY = 0; testY < (inputImg.Height / outImg.Height); testY++)
+            {
+              Rgb24 col = inputImg[(int)(x * 2 * ((double)inputImg.Width / (double)outImg.Width)) + testX, (int)(y * ((double)inputImg.Height / (double)outImg.Height)) + testY];
+              foreach (var predicate in predicates)
+              {
+                if (predicate(col))
+                {
+                  count++;
+                  break;
+                }
+              }
+            }
+          }
+          //if (Math.Pow(count, 2) > (inputImg.Width / outImg.Width) * (inputImg.Height / outImg.Height))
+          if (count > 1)
+          {
+            if (outImg[2 * x, y] != mergeColor)
+            {
+              outImg[x * 2, y] = color;
+            }
+            outImg[x * 2 + 1, y] = color;
+          }
+        }
+      }
+    }
+    private static Func<Rgb24, bool> ExactMatch(int red, int green, int blue)
+    {
+      return (Rgb24 col) => (red == -1 || col.R == red) && (green == -1 || col.G == green) && (blue == -1 || col.B == blue);
+    }
+    private static Func<Rgb24, bool> RatioMatch(double red, double green, double blue, double exactness)
+    {
+      return (Rgb24 col) =>
+      {
+        double actualRed = ((double)col.R) / red;
+        double actualGreen = ((double)col.G) / green;
+        double actualBlue = ((double)col.B) / blue;
+
+        return (red == -1 || green == -1 || (Math.Abs(actualRed - actualGreen) < exactness)) &&
+                (red == -1 || blue == -1 || (Math.Abs(actualRed - actualBlue) < exactness)) &&
+                (green == -1 || blue == -1 || (Math.Abs(actualGreen - actualBlue) < exactness));
+      };
+    }
+
+    private static void AddWater(Image<Rgb24> inputImg, Config cfg, Image<Rgb24> outImg)
+    {
+      Func<Rgb24, bool>[] predicates = [
+        ExactMatch(63, 68, 142)
+      ];
+      PixelIterBox(inputImg, predicates, cfg.colorScheme.Water, outImg);
+    }
+    private static void AddGrass(Image<Rgb24> inputImg, Config cfg, Image<Rgb24> outImg)
+    {
+      Func<Rgb24, bool>[] predicates = [
+        ExactMatch(45, 97, 66)
+      ];
+      PixelIterBox(inputImg, predicates, cfg.colorScheme.Grass, outImg);
+    }
+    private static void AddTrams(Image<Rgb24> inputImg, Config cfg, Image<Rgb24> outImg)
+    {
+      Func<Rgb24, bool>[] predicates = [
+         (Rgb24 col) => ((RatioMatch(1.1, 1.0, -1, 44)(col) && col.B < 80 && col.R > 100) && !ExactMatch(200, 182, 59)(col)) || ExactMatch(74, 70, 38)(col)
+      ];
+      PixelIterBox(inputImg, predicates, cfg.colorScheme.Trams, outImg);
+    }
+    private static void AddBuses(Image<Rgb24> inputImg, Config cfg, Image<Rgb24> outImg)
+    {
+      Func<Rgb24, bool>[] predicates = [
+         RatioMatch(4.9,1, 1.46, 2.2)
+      ];
+      DualPixelIterBox(inputImg, predicates, cfg.colorScheme.Trams, cfg.colorScheme.Buses, outImg);
+    }
+    private static Action<Image<Rgb24>, Config, Image<Rgb24>>[] Layers = [AddGrass, AddWater, AddTrams, AddBuses];
+
+    public static Image<Rgb24> RunLayers(Image<Rgb24> img, Config cfg)
+    {
+      var outImg = new Image<Rgb24>(cfg.resolution * 2, cfg.resolution, cfg.colorScheme.Land);
+      foreach (var layer in Layers)
+      {
+        layer(img, cfg, outImg);
       }
       return outImg;
     }
