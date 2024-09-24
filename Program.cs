@@ -1,32 +1,51 @@
 using Core.Api.Maps;
 using Spectre.Console;
-using Core;
+using Core.Rendering;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Color = SixLabors.ImageSharp.Color;
 
-public static class Config
+public struct Config
 {
-  public static Int16 resolution = 50;
-  public static Byte zoom = 16;
+  public double latitude;
+  public double longitude;
+  public Int16 resolution;
+  public Byte zoom;
+  public ColorScheme colorScheme;
 }
 
 public class Program
 {
   static void Main(string[] args)
   {
-    double latitude = 50.0755;
-    double longitude = 14.4378;
-    Console.WriteLine($"Location: Prague, Czech Republic | Latitude = {latitude}, Longitude = {longitude}");
-    Image<Rgba32> inputImage = GetOpenStreetMapTileUrl(latitude, longitude, Config.zoom);
-    AnsiConsole.Write(ImageProcessing.ImageSharpToCanvasImage(inputImage).MaxWidth(768));
 
-    var thresholdImg = ImageProcessing.Threshold(inputImage, Config.resolution);
-    CanvasImage image = ImageProcessing.ImageSharpToCanvasImage(thresholdImg);
-    image.MaxWidth(Config.resolution);
+    Config cfg = new Config
+    {
+      resolution = 48,
+      zoom = 15,
+      longitude = 14.4118794,
+      latitude = 50.0732811,
+      colorScheme = new ColorScheme
+      {
+        Water = Color.DarkBlue,
+        Land = Color.LightGray,
+        Grass = Color.Green,
+        Buses = Color.Red,
+        Trams = new Rgb24(30, 30, 30)
+      }
+    };
+    Console.WriteLine($"Location: Prague, Czech Republic | Latitude = {cfg.latitude}, Longitude = {cfg.longitude}");
+    Image<Rgb24> inputImage = GetOpenStreetMapTileUrl(cfg.latitude, cfg.longitude, cfg.zoom);
+    AnsiConsole.Write(new CanvasImageWithText(inputImage).MaxWidth(48).AddText(new CanvasText(11, 12, "AAAAAAAAAA")));
+
+
+    Image<Rgb24> thresholdImg = ImageProcessing.RunLayers(inputImage, cfg);
+    CanvasImageWithText image = new CanvasImageWithText(thresholdImg).PixelWidth(1);
+    image.AddText(new CanvasText(19 * 2, 44, "SSPŠ"));
     AnsiConsole.Write(image);
   }
 
-  static Image<Rgba32> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
+  static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
   {
     MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
     Tile[] tiles = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
