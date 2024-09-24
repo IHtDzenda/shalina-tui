@@ -68,8 +68,13 @@ namespace Core.Api.Maps
   {
     public async Task<Transport[]> getData()
     {
+      double lonFrom = 7.483183523110626;
+      double latFrom = 46.74962999246071;
+      double lonTo = 21.737944391598802;
+      double latTo = 53.26248060357497;
+
       string url = "https://mapa.pid.cz/getData.php";
-      string jsonData = "{\"action\":\"getData\",\"dimensions\":[1335,951],\"bounds\":[7.483183523110626,46.74962999246071,21.737944391598802,53.26248060357497],\"openedVehicleWindow\":false}";
+      string jsonData = "{\"action\":\"getData\",\"dimensions\":[1335,951],\"bounds\":[" + lonFrom + "," + latFrom + "," + lonTo + "," + latTo + "],\"openedVehicleWindow\":false}";
 
       using (HttpClient client = new HttpClient())
       {
