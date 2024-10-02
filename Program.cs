@@ -48,7 +48,7 @@ public class Program
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
   {
     MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
-    Tile[] tiles = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
-    return mapsApi.ConcatImages(tiles);
+    Image<Rgb24>[] images = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
+    return mapsApi.ConcatImages(images);
   }
 }
