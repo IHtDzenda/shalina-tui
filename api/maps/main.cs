@@ -18,11 +18,7 @@ namespace Core.Api.Maps
     South,
     SouthEast,
   }
-  public struct Tile
-  {
-    public string filePath;
-    public string fileUrl;
-  }
+
   public class MapsApi
   {
     public MapProviders[] mapProviders = new MapProviders[]
@@ -43,10 +39,15 @@ namespace Core.Api.Maps
       },
     };
 
+    private struct Tile
+    {
+      public string filePath;
+      public string fileUrl;
+    }
     public MapProviders currentMapProvider { get; set; }
     public Image<Rgb24> ConcatImages(Image<Rgb24>[] images, byte count = 3)
     {
-      const Int16 pixelCount = 256;
+      int pixelCount = images[0].Size.Width;
       var finalImage = new Image<Rgb24>(pixelCount * count, pixelCount * count);
       for (int i = 0; i < images.Length; i++)
       {
