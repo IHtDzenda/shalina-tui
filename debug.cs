@@ -1,6 +1,6 @@
 using Core.Api.Maps;
 using Spectre.Console;
-
+using Core.Api.VectorTiles;
 namespace Core.Debug
 {
   public class Debug
@@ -19,6 +19,13 @@ namespace Core.Debug
         AnsiConsole.Markup($"[yellow]Longitude: {transports[i].lon} [/]");
         AnsiConsole.WriteLine();
       }
+    }
+    public static void PrintVectorTiles(Config cfg)
+    {
+      string filePath = VectorTiles.GetTile(cfg.latitude, cfg.longitude, 10);
+      VectorTiles.PrintTile(VectorTiles.LoadTile(filePath));
+      AnsiConsole.WriteLine("Testing VectorTiles");
+
     }
   }
 

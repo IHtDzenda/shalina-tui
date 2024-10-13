@@ -1,9 +1,25 @@
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 
 namespace Core.Util
 {
   public class Util
   {
+    public static bool IsGzip(byte[] data)
+    {
+      return data.Length > 2 && data[0] == 0x1f && data[1] == 0x8b;
+    }
+    public static byte[] DecompressGzip(byte[] gzipData)
+    {
+      using (var compressedStream = new MemoryStream(gzipData))
+      using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Decompress))
+      using (var outputStream = new MemoryStream())
+      {
+        gzipStream.CopyTo(outputStream);
+        return outputStream.ToArray();
+      }
+    }
+
     public static OSPlatform GetOs()
     {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
