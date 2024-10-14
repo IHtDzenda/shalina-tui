@@ -1,6 +1,5 @@
 using Core.Api.Maps;
 using Spectre.Console;
-
 namespace Core.Debug
 {
   public class Debug
@@ -21,5 +20,4 @@ namespace Core.Debug
       }
     }
   }
-
 }

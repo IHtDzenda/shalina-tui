@@ -4,6 +4,7 @@ using Core.Rendering;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Color = SixLabors.ImageSharp.Color;
+using Core.Debug;
 
 public struct Config
 {
@@ -43,6 +44,7 @@ public class Program
     CanvasImageWithText image = new CanvasImageWithText(thresholdImg).PixelWidth(1);
     image.AddText(new CanvasText(19 * 2, 44, "SSPŠ"));
     AnsiConsole.Write(image);
+    Debug.PrintVectorTiles(cfg);
   }
 
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
