@@ -11,6 +11,7 @@ namespace Core.Api.Maps
     Subway,
     Rail,
     Ferry,
+    Trolleybus,
     Other
   }
   public struct GPSData
