@@ -18,11 +18,7 @@ namespace Core.Api.Maps
     South,
     SouthEast,
   }
-  public struct Tile
-  {
-    public string filePath;
-    public string fileUrl;
-  }
+
   public class MapsApi
   {
     public MapProviders[] mapProviders = new MapProviders[]
@@ -43,20 +39,21 @@ namespace Core.Api.Maps
       },
     };
 
-    public MapProviders currentMapProvider { get; set; }
-    public Image<Rgb24> ConcatImages(Tile[] tiles, byte count = 3)
+    private struct Tile
     {
-      const Int16 pixelCount = 256;
+      public string filePath;
+      public string fileUrl;
+    }
+    public MapProviders currentMapProvider { get; set; }
+    public Image<Rgb24> ConcatImages(Image<Rgb24>[] images, byte count = 3)
+    {
+      int pixelCount = images[0].Size.Width;
       var finalImage = new Image<Rgb24>(pixelCount * count, pixelCount * count);
-      for (int i = 0; i < tiles.Length; i++)
+      for (int i = 0; i < images.Length; i++)
       {
-        using (Image<Rgb24> img = Image.Load<Rgb24>(tiles[i].filePath))
-        {
-          int xPos = (i % count) * pixelCount;
-          int yPos = (i / count) * pixelCount;
-
-          finalImage.Mutate(ctx => ctx.DrawImage(img, new Point(xPos, yPos), 1f));
-        }
+        int xPos = (i % count) * pixelCount;
+        int yPos = (i / count) * pixelCount;
+        finalImage.Mutate(ctx => ctx.DrawImage(images[i], new Point(xPos, yPos), 1f));
       }
 
       return finalImage;
@@ -65,7 +62,18 @@ namespace Core.Api.Maps
     {
       currentMapProvider = mapProviders.FirstOrDefault(x => x.name == mapPropiversName) ?? mapProviders.First();
     }
-    public Tile[] GetNeighbourTiles(double latitude, double longitude, int zoom)
+    public Image<Rgb24> GetTile(double latitude, double longitude, int zoom)
+    {
+      int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
+      int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
+      string filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX}-{tileY}.png";
+      string fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX}/{tileY}.png";
+      filePath = CheckForFileCache(filePath, fileUrl);
+      return Image.Load<Rgb24>(filePath);
+    }
+
+
+    public Image<Rgb24>[] GetNeighbourTiles(double latitude, double longitude, int zoom)
     {
       int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
       int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
@@ -115,12 +123,14 @@ namespace Core.Api.Maps
         filePath = $"{currentMapProvider.cacheDirSuffix}-{zoom}-{tileX + 1}-{tileY + 1}.png",
         fileUrl = $"{currentMapProvider.tileUrl}{zoom}/{tileX + 1}/{tileY + 1}.png"
       };
+      Image<Rgb24>[] images = new Image<Rgb24>[tiles.Length];
       for (int i = 0; i < tiles.Length; i++)
       {
         string path = CheckForFileCache(tiles[i].filePath, tiles[i].fileUrl);
         tiles[i].filePath = path;
+        images[i] = Image.Load<Rgb24>(path);
       }
-      return tiles;
+      return images;
     }
     public string GetTiles(double latitude, double longitude, int zoom)
     {

@@ -4,6 +4,7 @@ using Core.Rendering;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Color = SixLabors.ImageSharp.Color;
+using Core.Debug;
 
 public struct Config
 {
@@ -43,12 +44,13 @@ public class Program
     CanvasImageWithText image = new CanvasImageWithText(thresholdImg).PixelWidth(1);
     image.AddText(new CanvasText(19 * 2, 44, "SSPŠ"));
     AnsiConsole.Write(image);
+    Debug.PrintVectorTiles(cfg);
   }
 
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
   {
     MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
-    Tile[] tiles = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
-    return mapsApi.ConcatImages(tiles);
+    Image<Rgb24>[] images = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
+    return mapsApi.ConcatImages(images);
   }
 }
