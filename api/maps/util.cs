@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using System.Runtime.InteropServices;
 
 namespace Core.Util
@@ -19,7 +18,6 @@ namespace Core.Util
         return outputStream.ToArray();
       }
     }
-
     public static OSPlatform GetOs()
     {
       if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -61,9 +59,6 @@ namespace Core.Util
       }
       Directory.CreateDirectory(cacheDir);
       return cacheDir;
-
-
     }
   }
-
 }
