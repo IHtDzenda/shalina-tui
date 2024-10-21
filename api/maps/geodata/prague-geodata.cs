@@ -97,8 +97,18 @@ namespace Core.Api.Maps
       throw new NotImplementedException();
     }
   }
+
   public class PragueGeoData : GeoDataInterface
   {
+    static Dictionary<string, RouteType> routeTypeMap = new Dictionary<string, RouteType>
+    {
+      { "3", RouteType.Bus },
+      { "11", RouteType.Trolleybus },
+      { "7", RouteType.Ferry },
+      { "1", RouteType.Subway },
+      { "2", RouteType.Rail },
+      { "0", RouteType.Tram },
+    };
     public async Task<GeoData[]> getData(bool useCache = true)
     {
       string date = DateTime.Now.ToString("yyyy-MM-dd");
@@ -131,21 +141,20 @@ namespace Core.Api.Maps
       PragueGeoDataResponse jsonResponse = JsonSerializer.Deserialize<PragueGeoDataResponse>(content, options);
       GeoData[] geoData = new GeoData[jsonResponse.features.Count];
 
-      int i = 0;
-      foreach (var item in jsonResponse.features)
+      for (int i = 0; i < jsonResponse.features.Count; i++)
       {
         geoData[i] = new GeoData
         {
-          geometry = item.geometry.coordinates,
-          routeId = item.properties.route_id,
-          routeDisplayNumber = item.properties.route_short_name,
-          routeNameLong = item.properties.route_long_name,
-          routeColor = item.properties.route_color,
-          routeUrl = item.properties.route_url,
-          isSubsitute = item.properties.is_substitute_transport == "1",
-          isNightRoute = item.properties.is_night == "1",
+          geometry = jsonResponse.features[i].geometry.coordinates,
+          routeId = jsonResponse.features[i].properties.route_id,
+          routeDisplayNumber = jsonResponse.features[i].properties.route_short_name,
+          routeNameLong = jsonResponse.features[i].properties.route_long_name,
+          routeColor = jsonResponse.features[i].properties.route_color,
+          routeUrl = jsonResponse.features[i].properties.route_url,
+          isSubsitute = jsonResponse.features[i].properties.is_substitute_transport == "1",
+          isNightRoute = jsonResponse.features[i].properties.is_night == "1",
+          routeType = routeTypeMap.GetValueOrDefault(jsonResponse.features[i].properties.route_type, RouteType.Other)
         };
-        i++;
       }
       return geoData;
     }
