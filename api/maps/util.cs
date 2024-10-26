@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using System.IO.Compression;
 
-namespace Core.Util
+namespace Core
 {
   public class Util
   {
@@ -52,7 +52,7 @@ namespace Core.Util
       }
       else if (os == OSPlatform.OSX)
       {
-        throw new NotImplementedException("MacOS is not supported yet!");
+        throw new NotImplementedException("MacOS is not supported yet!"); // TODO
       }
       if (Directory.Exists(cacheDir))
       {
@@ -60,6 +60,30 @@ namespace Core.Util
       }
       Directory.CreateDirectory(cacheDir);
       return cacheDir;
+    }
+    public static string GetConfigPath()
+    {
+      OSPlatform os = GetOs();
+      string configPath = "";
+      if (os == OSPlatform.Windows)
+      {
+        configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\config.json";
+      }
+      else if (os == OSPlatform.Linux)
+      {
+        string homepath = Environment.GetEnvironmentVariable("HOME")!;
+        configPath = homepath + @"/.config/shalina.json";
+      }
+      else if (os == OSPlatform.OSX)
+      {
+        throw new NotImplementedException("MacOS is not supported yet!"); // TODO
+      }
+      if (File.Exists(configPath))
+      {
+        return configPath;
+      }
+      File.Create(configPath);
+      return configPath;
     }
   }
 }

@@ -20,7 +20,7 @@ namespace Core.Api.VectorTiles
       int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
       int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
       string url = $"https://a.tile.thunderforest.com/thunderforest.transport-v2/{zoom}/{tileX}/{tileY}.vector.pbf?apikey={apiKey}";
-      string filePath = Util.Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
+      string filePath = Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
       if (File.Exists(filePath))
       {
         return filePath;
@@ -37,9 +37,9 @@ namespace Core.Api.VectorTiles
         {
           throw new Exception("Response body is null!, try using a smaller zoom level.");
         }
-        if (Util.Util.IsGzip(responseBody))
+        if (Util.IsGzip(responseBody))
         {
-          responseBody = Util.Util.DecompressGzip(responseBody);
+          responseBody = Util.DecompressGzip(responseBody);
         }
         File.WriteAllBytes(filePath, responseBody);
       }

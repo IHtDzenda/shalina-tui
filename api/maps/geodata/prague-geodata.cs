@@ -112,7 +112,7 @@ namespace Core.Api.Maps
     public async Task<GeoData[]> getData(bool useCache = true)
     {
       string date = DateTime.Now.ToString("yyyy-MM-dd");
-      string filePath = $"{Util.Util.CheckForCacheDir()}/geodata_{date}.json";
+      string filePath = $"{Util.CheckForCacheDir()}/geodata_{date}.json";
       string content = "";
       if (!File.Exists(filePath) || !useCache)
       {
