@@ -6,14 +6,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using Color = SixLabors.ImageSharp.Color;
 using Core.Debug;
 
-public struct Config
-{
-  public double latitude;
-  public double longitude;
-  public Int16 resolution;
-  public Byte zoom;
-  public ColorScheme colorScheme;
-}
 
 public class Program
 {
@@ -35,7 +27,6 @@ public class Program
         Trams = new Rgb24(30, 30, 30)
       }
     };
-    Console.WriteLine($"Location: Prague, Czech Republic | Latitude = {cfg.latitude}, Longitude = {cfg.longitude}");
     Image<Rgb24> inputImage = GetOpenStreetMapTileUrl(cfg.latitude, cfg.longitude, cfg.zoom);
     AnsiConsole.Write(new CanvasImageWithText(inputImage).MaxWidth(48).AddText(new CanvasText(11, 12, "AAAAAAAAAA")));
 
