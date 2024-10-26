@@ -44,7 +44,6 @@ public class Program
     CanvasImageWithText image = new CanvasImageWithText(thresholdImg).PixelWidth(1);
     image.AddText(new CanvasText(19 * 2, 44, "SSPŠ"));
     AnsiConsole.Write(image);
-    Debug.PrintVectorTiles(cfg);
   }
 
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
