@@ -1,4 +1,5 @@
 using Core.Api.Maps;
+using Core.Rendering;
 using Spectre.Console;
 namespace Core.Debug
 {
@@ -44,6 +45,16 @@ namespace Core.Debug
       AnsiConsole.Markup($"[rgb({config.colorScheme.Land.R},{config.colorScheme.Land.G},{config.colorScheme.Land.B})]Land: {config.colorScheme.Land} [/]");
       AnsiConsole.Markup($"[rgb({config.colorScheme.Grass.R},{config.colorScheme.Grass.G},{config.colorScheme.Grass.B})]Grass: {config.colorScheme.Grass} [/]");
       AnsiConsole.Markup($"[rgb({config.colorScheme.Tram.R},{config.colorScheme.Tram.G},{config.colorScheme.Tram.B})]Tram: {config.colorScheme.Tram} [/]");
+    }
+    public static void ImageCenter()
+    {
+      Config config = new Config();
+      GPSData coord = new GPSData(config.latitude, config.longitude);
+      for (byte i = 0; i < 15; i++)
+      {
+        GPSData center = Conversion.GetImageCenter(coord, i);
+        AnsiConsole.MarkupLine($"[green]Center for zoom {i}: {center.lat}, {center.lon} [/]");
+      }
     }
   }
 }
