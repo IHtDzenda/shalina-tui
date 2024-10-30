@@ -27,7 +27,7 @@ public static class Conversion
 
     return (tileX, tileY);
   }
-  public static GPSData ConvertGPSToTile(GPSData coord, byte zoom)
+  public static GPSData GetTileCenter(GPSData coord, byte zoom)
   {
     (int tileX, int tileY) = GetTileFromGPS(coord, zoom);
     return ConvertTileToGPS(tileX, tileY, zoom);
@@ -50,8 +50,10 @@ public static class Conversion
     };
   }
   public static (GPSData min, GPSData max) GetBoundingBox(GPSData center, byte zoom){
-    (int tileX, int tileY) = GetTileFromGPS(center, zoom);
-    GPSData diff = ConvertTileToGPS(tileX + 1, tileY, zoom) - ConvertTileToGPS(tileX, tileY + 1, zoom);
-    return (center - (diff / 2), center + (diff / 2));
+    (int x, int y)[] images = GetImages(center, zoom);
+    GPSData diff = center - ConvertTileToGPS(images[0].x, images[0].y, zoom);
+    GPSData min = ConvertTileToGPS(images[0].x, images[0].y, zoom) - diff;
+    GPSData max = ConvertTileToGPS(images[3].x, images[3].y, zoom) + diff;
+    return (min, max);
   }
 }
