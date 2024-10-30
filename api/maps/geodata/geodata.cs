@@ -35,6 +35,14 @@ namespace Core.Api.Maps
     {
       return new GPSData(a.lat + b.lat, a.lon + b.lon);
     }
+    public static GPSData operator /(GPSData a, double b)
+    {
+      return new GPSData(a.lat / b, a.lon / b);
+    }
+    public static GPSData operator *(GPSData a, double b)
+    {
+      return new GPSData(a.lat * b, a.lon * b);
+    }
   }
   public class GeoData
   {
