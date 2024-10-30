@@ -23,6 +23,18 @@ namespace Core.Api.Maps
       lat = latitude;
       lon = longitude;
     }
+    public override string ToString()
+    {
+      return $"lat: {lat}, lon: {lon}";
+    }
+    public static GPSData operator -(GPSData a, GPSData b)
+    {
+      return new GPSData(a.lat - b.lat, a.lon - b.lon);
+    }
+    public static GPSData operator +(GPSData a, GPSData b)
+    {
+      return new GPSData(a.lat + b.lat, a.lon + b.lon);
+    }
   }
   public class GeoData
   {
