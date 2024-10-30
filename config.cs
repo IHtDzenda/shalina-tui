@@ -54,9 +54,9 @@ public struct ColorScheme
 public struct Config
 {
   [JsonPropertyName("lat")]
-  public readonly double latitude { get; init; } = 14.4050773;
+  public readonly double latitude { get; init; } = 50.0753684;
   [JsonPropertyName("lon")]
-  public readonly double longitude { get; init; } = 50.0753684;
+  public readonly double longitude { get; init; } = 14.4050773;
   public readonly short resolution = AnsiConsole.Profile.Height > 32  && AnsiConsole.Profile.Width > 48// No get; means it won't be serialized
     ? (short)(AnsiConsole.Profile.Height - 8)
     : throw new Exception("Terminal is too small(minimal height is 32  and width 48)");
