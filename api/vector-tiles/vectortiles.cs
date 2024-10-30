@@ -10,15 +10,12 @@ namespace Core.Api.VectorTiles
       byte[] data = File.ReadAllBytes(filePath);
       return new VectorTile(data);
     }
-    public static string GetTile(double latitude, double longitude, int zoom)
+    public static string DownloadTile(int tileX, int tileY, int zoom)
     {
-      //url is limited to 15 zoom levels
-      if (zoom >= 15)
+      if (zoom > 14)
       {
         zoom = 14;
       }
-      int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
-      int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
       string url = $"https://a.tile.thunderforest.com/thunderforest.transport-v2/{zoom}/{tileX}/{tileY}.vector.pbf?apikey={apiKey}";
       string filePath = Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
       if (File.Exists(filePath))
@@ -44,6 +41,11 @@ namespace Core.Api.VectorTiles
         File.WriteAllBytes(filePath, responseBody);
       }
       return filePath;
+    }
+    public static VectorTile GetTile(int tileX, int tileY, int zoom)
+    {
+      string filePath = DownloadTile(tileX, tileY, zoom);
+      return LoadTile(filePath);
     }
   }
 }
