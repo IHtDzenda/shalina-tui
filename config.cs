@@ -120,7 +120,7 @@ public class Rgb24JsonSerializerExtension : JsonConverter<Rgb24>
 
     string hex = reader.GetString();
 
-    if (hex == null || hex.Length != 7 || hex[0] != '#')
+    if (hex == null || hex.Length != 7 || hex[0] != '#' || !hex.Substring(1).All(c => "0123456789ABCDEF".Contains(c)))
     {
       throw new JsonException("Invalid hex color format.");
     }
