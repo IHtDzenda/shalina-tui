@@ -69,20 +69,11 @@ namespace Core
       {
         configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\config.json";
       }
-      else if (os == OSPlatform.Linux)
+      else if (os == OSPlatform.Linux || os == OSPlatform.OSX)
       {
         string homepath = Environment.GetEnvironmentVariable("HOME")!;
         configPath = homepath + @"/.config/shalina.json";
       }
-      else if (os == OSPlatform.OSX)
-      {
-        throw new NotImplementedException("MacOS is not supported yet!"); // TODO
-      }
-      if (File.Exists(configPath))
-      {
-        return configPath;
-      }
-      File.Create(configPath);
       return configPath;
     }
   }
