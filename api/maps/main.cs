@@ -184,14 +184,10 @@ namespace Core.Api.Maps
       {
         cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\cache\" + pathSuffix;
       }
-      else if (os == OSPlatform.Linux)
+      else if (os == OSPlatform.Linux||os==OSPlatform.OSX)
       {
         string homepath = Environment.GetEnvironmentVariable("HOME")!;
         cacheDir = homepath + @"/.cache/shalina/" + pathSuffix;
-      }
-      else if (os == OSPlatform.OSX)
-      {
-        throw new NotImplementedException("MacOS is not supported yet!");
       }
       if (Directory.Exists(cacheDir))
       {
