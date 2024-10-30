@@ -12,7 +12,7 @@ public static class Conversion
     int y = imageSize.height - (int)((coord.lat - boundingBox.min.lat) / (boundingBox.max.lat - boundingBox.min.lat) * imageSize.height); // Invert y-axis for image coordinates
     return new Point(x, y);
   }
-  public static GPSData GetImageCenter(int tileX, int tileY, byte zoom)
+  public static GPSData ConvertTileToGPS(int tileX, int tileY, byte zoom)
   {
     double n = Math.PI - (2.0 * Math.PI * tileY) / (1 << zoom);
     double centerLatitude = 180.0 / Math.PI * Math.Atan(0.5 * (Math.Exp(n) - Math.Exp(-n)));
@@ -20,17 +20,38 @@ public static class Conversion
 
     return new GPSData(centerLatitude, centerLongitude);
   }
-  public static GPSData GetImageCenter(GPSData coord, byte zoom)
+  public static (int, int) GetTileFromGPS(GPSData coord, byte zoom)
   {
     int tileX = (int)((coord.lon + 180.0) / 360.0 * (1 << zoom));
     int tileY = (int)((1.0 - Math.Log(Math.Tan(coord.lat * Math.PI / 180.0) + 1.0 / Math.Cos(coord.lat * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
 
-    // Calculate the center of the tile in degrees
-    return GetImageCenter(tileX, tileY, zoom);
+    return (tileX, tileY);
   }
-  public static GPSData[] GetImages(GPSData coord, byte zoom)
+  public static GPSData ConvertGPSToTile(GPSData coord, byte zoom)
   {
-    GPSData center = GetImageCenter(coord, zoom);
-    //TODO
+    (int tileX, int tileY) = GetTileFromGPS(coord, zoom);
+    return ConvertTileToGPS(tileX, tileY, zoom);
+  }
+
+  public static (int, int)[] GetImages(GPSData coord, byte zoom)
+  {
+    (int centerX, int centerY) = GetTileFromGPS(coord, zoom);
+    GPSData center = ConvertTileToGPS(centerX, centerY, zoom);
+    int x = center.lon > coord.lon ? 1 : -1;
+    int y = center.lat > coord.lat ? 1 : -1;
+
+    // Calculate the coordinates of the surrounding tiles
+    return new (int, int)[]
+    {
+      (centerX, centerY),
+      (centerX + x, centerY),
+      (centerX, centerY + y),
+      (centerX + x, centerY + y)
+    };
+  }
+  public static (GPSData min, GPSData max) GetBoundingBox(GPSData center, byte zoom){
+    (int tileX, int tileY) = GetTileFromGPS(center, zoom);
+    GPSData diff = ConvertTileToGPS(tileX + 1, tileY, zoom) - ConvertTileToGPS(tileX, tileY + 1, zoom);
+    return (center - (diff / 2), center + (diff / 2));
   }
 }
