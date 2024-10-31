@@ -47,9 +47,6 @@ namespace Core.Api.Maps
   public interface GeoDataInterface
   {
 
-    public async Task<GeoData[]> getData()
-    {
-      throw new NotImplementedException();
-    }
+    public abstract Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache = true);
   }
 }
