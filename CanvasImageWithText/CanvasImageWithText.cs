@@ -47,6 +47,7 @@ namespace Core.Rendering
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
       this.texts = new CanvasText?[this.Height, this.Width];
+      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
       foreach (CanvasText text in texts)
       {
         this.texts[text.y, text.x] = text;
@@ -73,6 +74,7 @@ namespace Core.Rendering
     {
       Image = image;
       this.texts = new CanvasText?[this.Height, this.Width];
+      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
       foreach (CanvasText text in texts)
       {
         this.texts[text.y, text.x] = text;
