@@ -52,8 +52,8 @@ public static class Conversion
   public static (GPSData min, GPSData max) GetBoundingBox(GPSData center, byte zoom){
     (int x, int y)[] images = GetTiles(center, zoom);
     GPSData diff = ConvertTileToGPS(images[3].x, images[3].y, zoom) - ConvertTileToGPS(images[0].x, images[0].y, zoom);
-    GPSData min = center - diff;
-    GPSData max = center + diff;
+    GPSData min = center - diff / 2;
+    GPSData max = center + diff / 2;
     return (min, max);
   }
 }
