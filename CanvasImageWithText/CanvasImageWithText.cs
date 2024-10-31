@@ -140,6 +140,28 @@ namespace Core.Rendering
         image.Mutate(i => i.Resize(width, height, resampler));
       }
 
+      // TODO: maybe move this somewhere else
+      // Merge texts if there are multiple texts with the same content
+      // TODO: and they are less than 10 pixels apart in any direction, if not, render them separately
+      if (texts != null)
+      {
+        CanvasText[] _texts = texts
+            .OfType<CanvasText>()
+            .Select(text => { AnsiConsole.WriteLine(text.text); return text; })
+            .ToList()
+            .GroupBy(text => new
+            {
+              Key = text.text,
+            })
+            .Select(group => new CanvasText((int)group.Average(text => text.x), (int)group.Average(text => text.y), group.Key.Key, group.First().color))
+            .ToArray();
+        this.texts = new CanvasText?[this.Height, this.Width];
+        foreach (CanvasText text in _texts)
+        {
+          this.texts[text.y, text.x] = text;
+        }
+      }
+      // Render the image
       for (var y = 0; y < height; y++)
       {
         CanvasText? currentText = null;
@@ -165,7 +187,7 @@ namespace Core.Rendering
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');
-          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: new Color(currentText?.color.R ?? 0, currentText?.color.G ?? 0, currentText?.color.B ?? 0)));
+          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: new Color(currentText?.color.R ?? 255, currentText?.color.G ?? 255, currentText?.color.B ?? 255)));
         }
 
         yield return Segment.LineBreak;
