@@ -165,7 +165,7 @@ namespace Core.Rendering
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');
-          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B)));
+          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: new Color(currentText?.color.R ?? 0, currentText?.color.G ?? 0, currentText?.color.B ?? 0)));
         }
 
         yield return Segment.LineBreak;
