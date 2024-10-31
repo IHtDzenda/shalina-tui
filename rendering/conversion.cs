@@ -53,7 +53,7 @@ public static class Conversion
   public static (LatLng min, LatLng max) GetBoundingBox(LatLng center, byte zoom)
   {
     (int x, int y)[] images = GetTiles(center, zoom);
-    LatLng diff = ConvertTileToGPS(images[3].x, images[3].y, zoom).Subtract(ConvertTileToGPS(images[0].x, images[0].y, zoom));
+    LatLng diff = ConvertTileToGPS(images[0].x, images[0].y, zoom).Subtract(ConvertTileToGPS(images[3].x, images[3].y, zoom));
     LatLng min = center.Subtract(diff.Divide(2));
     LatLng max = center.Add(diff.Divide(2));
     return (min, max);
