@@ -14,11 +14,12 @@ namespace Core.Rendering
     public int y;
     public string text;
     public Rgb24 color;
-    public CanvasText(int x, int y, string text)
+    public CanvasText(int x, int y, string text, Rgb24 color)
     {
       this.x = x;
       this.y = y;
       this.text = text;
+      this.color = color;
     }
   }
 
@@ -42,6 +43,15 @@ namespace Core.Rendering
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
       this.texts = new CanvasText?[this.Height, this.Width];
     }
+    public CanvasImageWithText(string filename, CanvasText[] texts)
+    {
+      Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
+      this.texts = new CanvasText?[this.Height, this.Width];
+      foreach (CanvasText text in texts)
+      {
+        this.texts[text.y, text.x] = text;
+      }
+    }
 
     public CanvasImageWithText(ReadOnlySpan<byte> data)
     {
@@ -58,6 +68,15 @@ namespace Core.Rendering
     {
       Image = image;
       this.texts = new CanvasText?[this.Height, this.Width];
+    }
+    public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image, CanvasText[] texts)
+    {
+      Image = image;
+      this.texts = new CanvasText?[this.Height, this.Width];
+      foreach (CanvasText text in texts)
+      {
+        this.texts[text.y, text.x] = text;
+      }
     }
 
     public CanvasImageWithText AddText(CanvasText text)
