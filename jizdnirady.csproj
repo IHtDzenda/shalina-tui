@@ -10,6 +10,7 @@
     <PackageReference Include="Mapbox.VectorTile" Version="1.0.4-alpha2" />
     <PackageReference Include="OsmSharp.IO.API" Version="1.0.4" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
     <PackageReference Include="Spectre.Console" Version="0.49.1" />
   </ItemGroup>
 

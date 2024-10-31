@@ -1,4 +1,6 @@
+using Core.Rendering;
 using Mapbox.VectorTile;
+using Mapbox.VectorTile.Geometry;
 
 namespace Core.Api.VectorTiles
 {
@@ -14,7 +16,7 @@ namespace Core.Api.VectorTiles
     {
       if (zoom > 14)
       {
-        zoom = 14;
+        throw new Exception("Zoom level is too high!");
       }
       string url = $"https://a.tile.thunderforest.com/thunderforest.transport-v2/{zoom}/{tileX}/{tileY}.vector.pbf?apikey={apiKey}";
       string filePath = Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
@@ -42,8 +44,13 @@ namespace Core.Api.VectorTiles
       }
       return filePath;
     }
-    public static VectorTile GetTile(int tileX, int tileY, int zoom)
+    public static VectorTile GetTile(LatLng coord, byte zoom)
     {
+      if (zoom > 14)
+      {
+        throw new Exception("Zoom level is too high!");
+      }
+      (int tileX, int tileY) = Conversion.GetTileFromGPS(coord, zoom);
       string filePath = DownloadTile(tileX, tileY, zoom);
       return LoadTile(filePath);
     }

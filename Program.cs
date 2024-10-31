@@ -11,7 +11,8 @@ public class Program
   static void Main(string[] args)
   {
     Debug.LoadAndPrintConfig();
-    Debug.ImageCenter();
+    Debug.PrintBoundingBox();
+    Debug.SimpleRender();
   }
 
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
