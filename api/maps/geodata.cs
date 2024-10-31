@@ -34,7 +34,7 @@ namespace Core.Api.Maps
   }
   public class GeoData
   {
-    public List<LatLng> geometry { get; set; }
+    public List<List<LatLng>> geometry { get; set; }
     public string routeId { get; set; }
     public string routeDisplayNumber { get; set; }
     public string routeNameLong { get; set; }

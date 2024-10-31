@@ -6,12 +6,12 @@ namespace Core.Rendering;
 
 public static class Conversion
 {
-  public static Point ConvertGPSToPixel(LatLng coord, (LatLng min, LatLng max) boundingBox, (int width, int height) imageSize)
+  public static PointF ConvertGPSToPixel(LatLng coord, (LatLng min, LatLng max) boundingBox, (int width, int height) imageSize)
   {
     // Convert lat/lon to x/y based on the bounding box and image size
     int x = (int)((coord.Lng - boundingBox.min.Lng) / (boundingBox.max.Lng - boundingBox.min.Lng) * imageSize.width);
     int y = imageSize.height - (int)((coord.Lat - boundingBox.min.Lat) / (boundingBox.max.Lat - boundingBox.min.Lat) * imageSize.height); // Invert y-axis for image coordinates
-    return new Point(x, y);
+    return new PointF(x, y);
   }
   public static LatLng ConvertTileToGPS(int tileX, int tileY, byte zoom)
   {

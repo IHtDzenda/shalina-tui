@@ -17,7 +17,7 @@ public class PragueGeoDataResponseGeometry
   public string type { get; set; }
 
   [JsonConverter(typeof(CoordinatesConverter))]
-  public List<LatLng> coordinates { get; set; }
+  public List<List<LatLng>> coordinates { get; set; }
 }
 
 public class PragueGeoDataResponseProperties
@@ -41,11 +41,11 @@ public class PragueGeoDataResponse
   public List<PragueGeoDataResponseFeature> features { get; set; }
 }
 
-public class CoordinatesConverter : JsonConverter<List<LatLng>>
+public class CoordinatesConverter : JsonConverter<List<List<LatLng>>>
 {
-  public override List<LatLng> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+  public override List<List<LatLng>> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
   {
-    var gpsDataList = new List<LatLng>();
+    var gpsDataList = new List<List<LatLng>>();
 
     if (reader.TokenType != JsonTokenType.StartArray)
     {
@@ -62,10 +62,13 @@ public class CoordinatesConverter : JsonConverter<List<LatLng>>
         var coordinates = JsonSerializer.Deserialize<List<List<double>>>(document.RootElement.GetRawText(), options);
         if (coordinates != null)
         {
+          List<LatLng> gpsData = new List<LatLng>();
           foreach (var point in coordinates)
           {
-            gpsDataList.Add(new LatLng { Lat = point[1], Lng = point[0] });
+            gpsData.Add(new LatLng { Lat = point[1], Lng = point[0] });
           }
+          if (gpsData.Count > 0)
+            gpsDataList.Add(gpsData);
         }
       }
       else if (firstElement.ValueKind == JsonValueKind.Array && firstElement[0].ValueKind == JsonValueKind.Array)
@@ -76,10 +79,13 @@ public class CoordinatesConverter : JsonConverter<List<LatLng>>
         {
           foreach (var line in coordinates)
           {
+            List<LatLng> gpsData = new List<LatLng>();
             foreach (var point in line)
             {
-              gpsDataList.Add(new LatLng { Lat = point[1], Lng = point[0] });
+              gpsData.Add(new LatLng { Lat = point[1], Lng = point[0] });
             }
+            if (gpsData.Count > 0)
+              gpsDataList.Add(gpsData);
           }
         }
       }
@@ -92,7 +98,7 @@ public class CoordinatesConverter : JsonConverter<List<LatLng>>
     return gpsDataList;
   }
 
-  public override void Write(Utf8JsonWriter writer, List<LatLng> value, JsonSerializerOptions options)
+  public override void Write(Utf8JsonWriter writer, List<List<LatLng>> value, JsonSerializerOptions options)
   {
     throw new NotImplementedException();
   }
