@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Mapbox.VectorTile.Geometry;
 
 
 namespace Core.Api.Maps
@@ -17,7 +18,7 @@ namespace Core.Api.Maps
     public string type { get; set; }
 
     [JsonConverter(typeof(CoordinatesConverter))]
-    public List<GPSData> coordinates { get; set; }
+    public List<LatLng> coordinates { get; set; }
   }
 
   public class PragueGeoDataResponseProperties
@@ -41,11 +42,11 @@ namespace Core.Api.Maps
     public List<PragueGeoDataResponseFeature> features { get; set; }
   }
 
-  public class CoordinatesConverter : JsonConverter<List<GPSData>>
+  public class CoordinatesConverter : JsonConverter<List<LatLng>>
   {
-    public override List<GPSData> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override List<LatLng> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-      var gpsDataList = new List<GPSData>();
+      var gpsDataList = new List<LatLng>();
 
       if (reader.TokenType != JsonTokenType.StartArray)
       {
@@ -64,7 +65,7 @@ namespace Core.Api.Maps
           {
             foreach (var point in coordinates)
             {
-              gpsDataList.Add(new GPSData(point[1], point[0]));
+              gpsDataList.Add(new LatLng{ Lat = point[1], Lng = point[0] });
             }
           }
         }
@@ -78,7 +79,7 @@ namespace Core.Api.Maps
             {
               foreach (var point in line)
               {
-                gpsDataList.Add(new GPSData(point[1], point[0]));
+                gpsDataList.Add(new LatLng{ Lat = point[1], Lng = point[0] });
               }
             }
           }
@@ -92,7 +93,7 @@ namespace Core.Api.Maps
       return gpsDataList;
     }
 
-    public override void Write(Utf8JsonWriter writer, List<GPSData> value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, List<LatLng> value, JsonSerializerOptions options)
     {
       throw new NotImplementedException();
     }

@@ -1,5 +1,4 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Mapbox.VectorTile.Geometry;
 
 namespace Core.Api.Maps
 {
@@ -14,39 +13,28 @@ namespace Core.Api.Maps
     Trolleybus,
     Other
   }
-  public struct GPSData
+  public static class LatLngExtensions
   {
-    public double lat { get; set; }
-    public double lon { get; set; }
-    public GPSData(double latitude, double longitude)
+    public static LatLng Add(this LatLng a, LatLng b)
     {
-      lat = latitude;
-      lon = longitude;
+      return new LatLng { Lat = a.Lat + b.Lat, Lng = a.Lng + b.Lng };
     }
-    public override string ToString()
+    public static LatLng Subtract(this LatLng a, LatLng b)
     {
-      return $"lat: {lat}, lon: {lon}";
+      return new LatLng { Lat = a.Lat - b.Lat, Lng = a.Lng - b.Lng };
     }
-    public static GPSData operator -(GPSData a, GPSData b)
+    public static LatLng Multiply(this LatLng a, double b)
     {
-      return new GPSData(a.lat - b.lat, a.lon - b.lon);
+      return new LatLng { Lat = a.Lat * b, Lng = a.Lng * b };
     }
-    public static GPSData operator +(GPSData a, GPSData b)
+    public static LatLng Divide(this LatLng a, double b)
     {
-      return new GPSData(a.lat + b.lat, a.lon + b.lon);
-    }
-    public static GPSData operator /(GPSData a, double b)
-    {
-      return new GPSData(a.lat / b, a.lon / b);
-    }
-    public static GPSData operator *(GPSData a, double b)
-    {
-      return new GPSData(a.lat * b, a.lon * b);
+      return new LatLng { Lat = a.Lat / b, Lng = a.Lng / b };
     }
   }
   public class GeoData
   {
-    public List<GPSData> geometry { get; set; }
+    public List<LatLng> geometry { get; set; }
     public string routeId { get; set; }
     public string routeDisplayNumber { get; set; }
     public string routeNameLong { get; set; }
