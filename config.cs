@@ -124,13 +124,7 @@ public class Rgb24JsonSerializerExtension : JsonConverter<Rgb24>
     {
       throw new JsonException("Invalid hex color format.");
     }
-
-    // Parse hex values for R, G, B
-    byte r = Convert.ToByte(hex.Substring(1, 2), 16);
-    byte g = Convert.ToByte(hex.Substring(3, 2), 16);
-    byte b = Convert.ToByte(hex.Substring(5, 2), 16);
-
-    return new Rgb24(r, g, b);
+    return Util.ParseHexColor(hex.Substring(1));
   }
 
   public override void Write(Utf8JsonWriter writer, Rgb24 value, JsonSerializerOptions options)

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.IO.Compression;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Core
 {
@@ -75,6 +76,18 @@ namespace Core
         configPath = homepath + @"/.config/shalina.json";
       }
       return configPath;
+    }
+    public static Rgb24 ParseHexColor(string hex)
+    {
+      if (hex == null || hex.Length != 6 || !hex.Substring(1).All(c => "0123456789ABCDEF".Contains(c)))
+      {
+        throw new ArgumentException("Invalid hex color format.");
+      }
+      return new Rgb24(
+        byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber),
+        byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
+        byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber)
+      );
     }
   }
 }
