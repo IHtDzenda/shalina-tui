@@ -1,4 +1,5 @@
 using Mapbox.VectorTile.Geometry;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Core.Api.Maps
 {
@@ -38,7 +39,7 @@ namespace Core.Api.Maps
     public string routeId { get; set; }
     public string routeDisplayNumber { get; set; }
     public string routeNameLong { get; set; }
-    public string routeColor { get; set; }
+    public Rgb24 routeColor { get; set; }
     public string routeUrl { get; set; }
     public bool isSubsitute { get; set; }
     public bool isNightRoute { get; set; }

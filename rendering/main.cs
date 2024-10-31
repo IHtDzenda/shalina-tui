@@ -57,10 +57,9 @@ public static class Renderer
         }
         foreach(var line in geoData.geometry)
         {
-          Console.WriteLine(geoData.routeColor);
           image.Mutate(ctx =>
           {
-            ctx.DrawLine(drawingOptions, Brushes.Solid(config.colorScheme.Subway), 1, line.Select(x => Conversion.ConvertGPSToPixel(x, boundingBox, (image.Width, image.Height))).ToArray());
+            ctx.DrawLine(drawingOptions, Brushes.Solid(geoData.routeColor), 1, line.Select(x => Conversion.ConvertGPSToPixel(x, boundingBox, (image.Width, image.Height))).ToArray());
           });
         }
       }

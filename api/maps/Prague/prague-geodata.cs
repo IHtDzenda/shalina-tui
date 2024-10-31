@@ -155,7 +155,7 @@ public class PragueGeoData : GeoDataInterface
         routeId = jsonResponse.features[i].properties.route_id,
         routeDisplayNumber = jsonResponse.features[i].properties.route_short_name,
         routeNameLong = jsonResponse.features[i].properties.route_long_name,
-        routeColor = jsonResponse.features[i].properties.route_color,
+        routeColor = Util.ParseHexColor(jsonResponse.features[i].properties.route_color),
         routeUrl = jsonResponse.features[i].properties.route_url,
         isSubsitute = jsonResponse.features[i].properties.is_substitute_transport == "1",
         isNightRoute = jsonResponse.features[i].properties.is_night == "1",
