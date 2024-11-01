@@ -106,6 +106,8 @@ public class CoordinatesConverter : JsonConverter<List<List<LatLng>>>
 
 public class PragueGeoData : GeoDataInterface
 {
+  private static GeoData[] geoDataCache;
+  private static DateTime lastCacheUpdate = DateTime.MinValue;
   static Dictionary<string, RouteType> routeTypeMap = new Dictionary<string, RouteType>
     {
       { "3", RouteType.Bus },
@@ -117,6 +119,10 @@ public class PragueGeoData : GeoDataInterface
     };
   public async Task<GeoData[]> getData((LatLng min, LatLng max) _, bool useCache)
   {
+    if(geoDataCache != null && useCache && geoDataCache.Length > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
+    {
+      return geoDataCache;
+    }
     string date = DateTime.Now.ToString("yyyy-MM-dd");
     string filePath = $"{Util.CheckForCacheDir()}/geodata_{date}.json";
     string content = "";
@@ -162,6 +168,8 @@ public class PragueGeoData : GeoDataInterface
         routeType = routeTypeMap.GetValueOrDefault(jsonResponse.features[i].properties.route_type, RouteType.Other)
       };
     }
+    geoDataCache = geoData;
+    lastCacheUpdate = DateTime.Now;
     return geoData;
   }
 }
