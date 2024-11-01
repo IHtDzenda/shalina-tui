@@ -117,7 +117,26 @@ public class PragueGeoData : GeoDataInterface
       { "2", RouteType.Rail },
       { "0", RouteType.Tram },
     };
-  public async Task<GeoData[]> getData((LatLng min, LatLng max) _, bool useCache)
+  private GeoData[] filterData(GeoData[] data, (LatLng min, LatLng max) boundingBox)
+  {
+    List<GeoData> filteredData = new List<GeoData>();
+    foreach (GeoData geoData in data)
+    {
+      foreach (List<LatLng> line in geoData.geometry)
+      {
+        foreach (LatLng point in line)
+        {
+          if (point.Lat >= boundingBox.min.Lat && point.Lat <= boundingBox.max.Lat && point.Lng >= boundingBox.min.Lng && point.Lng <= boundingBox.max.Lng)
+          {
+            filteredData.Add(geoData);
+            break;
+          }
+        }
+      }
+    }
+    return filteredData.ToArray();
+  }
+  public async Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache)
   {
     if(geoDataCache != null && useCache && geoDataCache.Length > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {

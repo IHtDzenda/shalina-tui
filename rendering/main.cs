@@ -16,10 +16,11 @@ public static class Renderer
   public delegate void LayerFunction(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox);
 
   static Dictionary<string, LayerFunction> vectorTileLayers = new Dictionary<string, LayerFunction> {
+    { "ocean", RenderVectorWater },
+    { "greenspace", RenderVectorGreenspace },
     { "water", RenderVectorWater },
-      {"waterway", RenderVectorWater},
-      { "greenspace", RenderVectorGreenspace },
-      { "wetland", RenderVectorGreenspace },
+    { "waterway", RenderVectorWater },
+    { "wetland", RenderVectorGreenspace },
   };
   static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PragueGeoData() };
   static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidData() };
@@ -35,6 +36,22 @@ public static class Renderer
 
   static Image<Rgb24> image;
   static List<CanvasText> texts = new List<CanvasText>();
+  private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
+  {
+    for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
+    {
+      VectorTileFeature feature = layer.GetFeature(featureIdx);
+      try
+      {
+        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
+        {
+          continue;
+        }
+      }
+      catch { }
+      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme.Water, layer.Extent);
+    }
+  }
   private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
@@ -73,22 +90,6 @@ public static class Renderer
       }
       // Draw from points
       image.Mutate(ctx => operation(ctx, points));
-    }
-  }
-  private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
-  {
-    for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
-    {
-      VectorTileFeature feature = layer.GetFeature(featureIdx);
-      try
-      {
-        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
-        {
-          continue;
-        }
-      }
-      catch { }
-      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme.Water, layer.Extent);
     }
   }
   // Render data from vector tiles (water, greenspace, etc.) - background
@@ -142,14 +143,12 @@ public static class Renderer
         PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
-        if (transport.lineName == null || transport.lineName == "")
-          Console.WriteLine($"Transport {transport.tripId} has no line name");
         texts.Add(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
         image[(int)point.X, (int)point.Y] = Color.White;
       }
     }
   }
-  public static CanvasImageWithText RenderMap(Config config)
+  public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null) // First time
     {
@@ -164,7 +163,8 @@ public static class Renderer
     (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
     RenderVectorTiles(config, coord, boundingBox);
     RenderGeoData(config, coord, boundingBox);
-    RenderLiveData(config, coord, boundingBox);
+    if (renderLive)
+      RenderLiveData(config, coord, boundingBox);
 
     return new CanvasImageWithText(image, texts.ToArray());
   }
