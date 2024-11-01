@@ -1,55 +1,81 @@
-using Core.Api.Maps;
 using Spectre.Console;
 using Core.Rendering;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using Color = SixLabors.ImageSharp.Color;
-using Core.Debug;
-
-public struct Config
-{
-  public double latitude;
-  public double longitude;
-  public Int16 resolution;
-  public Byte zoom;
-  public ColorScheme colorScheme;
-}
+using Core;
+using System.Diagnostics;
 
 public class Program
 {
-  static void Main(string[] args)
-  {
+  static bool rerender = false;
+  static CancellationTokenSource cts = new CancellationTokenSource();
+  static Config config = Config.Load();
 
-    Config cfg = new Config
+  static async Task Main(string[] args)
+  {
+    // Start the map rendering in a background task
+    var renderTask = Task.Run(() => RenderLoop(cts.Token));
+
+    // Start listening for key inputs in the main thread
+    while (true)
     {
-      resolution = 48,
-      zoom = 15,
-      longitude = 14.4118794,
-      latitude = 50.0732811,
-      colorScheme = new ColorScheme
+      if (Console.KeyAvailable)
       {
-        Water = Color.DarkBlue,
-        Land = Color.LightGray,
-        Grass = Color.Green,
-        Buses = Color.Red,
-        Trams = new Rgb24(30, 30, 30)
+        HandleKeyPress(Console.ReadKey(intercept: true).Key);  // Read the key without displaying it
+        rerender = true;  // Trigger immediate rerender
       }
-    };
-    Console.WriteLine($"Location: Prague, Czech Republic | Latitude = {cfg.latitude}, Longitude = {cfg.longitude}");
-    Image<Rgb24> inputImage = GetOpenStreetMapTileUrl(cfg.latitude, cfg.longitude, cfg.zoom);
-    AnsiConsole.Write(new CanvasImageWithText(inputImage).MaxWidth(48).AddText(new CanvasText(11, 12, "AAAAAAAAAA")));
+      await Task.Delay(100);  // Check for key press every 100ms
+    }
+  }   
+  static void HandleKeyPress(ConsoleKey key)
+    {
+        // Adjust config based on arrow key pressed
+        switch (key)
+        {
+            case ConsoleKey.UpArrow:
+                config.latitude += 0.001;  // Increase some value in the config
+                break;
+            case ConsoleKey.DownArrow:
+                config.latitude -= 0.001;  // Decrease some value in the config
+                break;
+            case ConsoleKey.LeftArrow:
+                config.longitude -= 0.001;  // Adjust another config value
+                break;
+            case ConsoleKey.RightArrow:
+                config.longitude += 0.001;  // Adjust another config value
+                break;
+            default:
+                // Handle other keys if needed
+                break;
+        }
+    }
 
-
-    Image<Rgb24> thresholdImg = ImageProcessing.RunLayers(inputImage, cfg);
-    CanvasImageWithText image = new CanvasImageWithText(thresholdImg).PixelWidth(1);
-    image.AddText(new CanvasText(19 * 2, 44, "SSPŠ"));
-    AnsiConsole.Write(image);
-  }
-
-  static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)
+  static void RenderLoop(CancellationToken token)
   {
-    MapsApi mapsApi = new MapsApi(MapProviders.MapPropiversName.Thunderforest);
-    Image<Rgb24>[] images = mapsApi.GetNeighbourTiles(latitude, longitude, zoom);
-    return mapsApi.ConcatImages(images);
+    while (!token.IsCancellationRequested)
+    {
+      Stopwatch stopwatch = new Stopwatch();
+      stopwatch.Start();
+
+      // Load configuration and render the map
+      AnsiConsole.Write(Renderer.RenderMap(config, false));
+
+      stopwatch.Stop();
+      AnsiConsole.WriteLine($"Time elapsed: {stopwatch.ElapsedMilliseconds}ms");
+
+      // Adjust sleep time to compensate for rendering duration
+      int delay = 5000 - (int)stopwatch.ElapsedMilliseconds;
+      if (delay > 0)
+      {
+        // Check if rerender was requested before the delay ends
+        for (int i = 0; i < delay / 100; i++)
+        {
+          if (rerender)
+          {
+            rerender = false;
+            break;
+          }
+          Thread.Sleep(100);  // Sleep in small increments
+        }
+      }
+    }
   }
 }

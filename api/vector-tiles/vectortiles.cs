@@ -1,4 +1,6 @@
+using Core.Rendering;
 using Mapbox.VectorTile;
+using Mapbox.VectorTile.Geometry;
 
 namespace Core.Api.VectorTiles
 {
@@ -10,17 +12,14 @@ namespace Core.Api.VectorTiles
       byte[] data = File.ReadAllBytes(filePath);
       return new VectorTile(data);
     }
-    public static string GetTile(double latitude, double longitude, int zoom)
+    public static string DownloadTile(int tileX, int tileY, int zoom)
     {
-      //url is limited to 15 zoom levels
-      if (zoom >= 15)
+      if (zoom > 14)
       {
-        zoom = 14;
+        throw new Exception("Zoom level is too high!");
       }
-      int tileX = (int)((longitude + 180.0) / 360.0 * (1 << zoom));
-      int tileY = (int)((1.0 - Math.Log(Math.Tan(latitude * Math.PI / 180.0) + 1.0 / Math.Cos(latitude * Math.PI / 180.0)) / Math.PI) / 2.0 * (1 << zoom));
       string url = $"https://a.tile.thunderforest.com/thunderforest.transport-v2/{zoom}/{tileX}/{tileY}.vector.pbf?apikey={apiKey}";
-      string filePath = Util.Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
+      string filePath = Util.CheckForCacheDir() + $"vt-{zoom}-{tileX}-{tileY}.pbf";
       if (File.Exists(filePath))
       {
         return filePath;
@@ -37,13 +36,23 @@ namespace Core.Api.VectorTiles
         {
           throw new Exception("Response body is null!, try using a smaller zoom level.");
         }
-        if (Util.Util.IsGzip(responseBody))
+        if (Util.IsGzip(responseBody))
         {
-          responseBody = Util.Util.DecompressGzip(responseBody);
+          responseBody = Util.DecompressGzip(responseBody);
         }
         File.WriteAllBytes(filePath, responseBody);
       }
       return filePath;
+    }
+    public static VectorTile GetTile(LatLng coord, byte zoom)
+    {
+      if (zoom > 14)
+      {
+        throw new Exception("Zoom level is too high!");
+      }
+      (int tileX, int tileY) = Conversion.GetTileFromGPS(coord, zoom);
+      string filePath = DownloadTile(tileX, tileY, zoom);
+      return LoadTile(filePath);
     }
   }
 }
