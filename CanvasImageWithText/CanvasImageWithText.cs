@@ -140,27 +140,6 @@ namespace Core.Rendering
         image.Mutate(i => i.Resize(width, height, resampler));
       }
 
-      // TODO: maybe move this somewhere else
-      // Merge texts if there are multiple texts with the same content
-      // TODO: and they are less than 10 pixels apart in any direction, if not, render them separately
-      if (texts != null)
-      {
-        CanvasText[] _texts = texts
-            .OfType<CanvasText>()
-            .Select(text => { AnsiConsole.WriteLine(text.text); return text; })
-            .ToList()
-            .GroupBy(text => new
-            {
-              Key = text.text,
-            })
-            .Select(group => new CanvasText((int)group.Average(text => text.x), (int)group.Average(text => text.y), group.Key.Key, group.First().color))
-            .ToArray();
-        this.texts = new CanvasText?[this.Height, this.Width];
-        foreach (CanvasText text in _texts)
-        {
-          this.texts[text.y, text.x] = text;
-        }
-      }
       // Render the image
       for (var y = 0; y < height; y++)
       {
