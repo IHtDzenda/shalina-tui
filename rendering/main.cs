@@ -82,7 +82,7 @@ public static class Renderer
       VectorTileFeature feature = layer.GetFeature(featureIdx);
       try
       {
-        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null )
+        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
         {
           continue;
         }
@@ -140,20 +140,24 @@ public static class Renderer
       {
         LatLng location = new LatLng { Lat = transport.lat, Lng = transport.lon };
         PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
-        if(point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
+        if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
         if (transport.lineName == null || transport.lineName == "")
           Console.WriteLine($"Transport {transport.tripId} has no line name");
         texts.Add(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
-        image[(int)point.X,(int)point.Y] = Color.White;
+        image[(int)point.X, (int)point.Y] = Color.White;
       }
     }
   }
   public static CanvasImageWithText RenderMap(Config config)
   {
-    if (image == null)
+    if (image == null) // First time
     {
       image = new Image<Rgb24>(config.resolution, config.resolution, config.colorScheme.Land);
+    }
+    else
+    {
+      image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
     }
     texts.Clear();
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
