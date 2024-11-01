@@ -4,15 +4,15 @@ using Core.Rendering;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Core.Debug;
+using Core;
 
 
 public class Program
 {
   static void Main(string[] args)
   {
-    Debug.LoadAndPrintConfig();
-    Debug.PrintBoundingBox();
-    Debug.SimpleRender();
+    Config config = Config.Load();
+    AnsiConsole.Write(Renderer.RenderMap(config));
   }
 
   static Image<Rgb24> GetOpenStreetMapTileUrl(double latitude, double longitude, int zoom)

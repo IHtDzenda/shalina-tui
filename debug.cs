@@ -7,8 +7,8 @@ using SixLabors.ImageSharp;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
+using Core.Api.Maps.Prague;
 namespace Core.Debug
 {
   public class Debug
@@ -17,7 +17,8 @@ namespace Core.Debug
     {
 
       PidData pidData = new PidData();
-      Transport[] transports = pidData.getData().Result;
+    (LatLng min, LatLng max) boundingBox = (new LatLng { Lat = 46.74962999246071, Lng = 7.483183523110626 }, new LatLng { Lat = 53.26248060357497, Lng = 21.737944391598802 });
+      Transport[] transports = pidData.getData(boundingBox).Result;
       AnsiConsole.WriteLine("Transports:");
       for (int i = 0; i < transports.Length; i++)
       {
@@ -166,7 +167,7 @@ namespace Core.Debug
               continue;
             }
             // Draw a polygon
-            image.Mutate(ctx => ctx.DrawLine(drawingOptions, Brushes.Solid(config.colorScheme.Bus),1, points.ToArray()));
+            image.Mutate(ctx => ctx.DrawLine(drawingOptions, Brushes.Solid(config.colorScheme.Bus), 1, points.ToArray()));
           }
         }
       }
@@ -180,7 +181,7 @@ namespace Core.Debug
           continue;
         }
         VectorTileLayer layer = tile.GetLayer(layerName);
-        for(int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
+        for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
         {
           VectorTileFeature feature = layer.GetFeature(featureIdx);
           foreach (var part in feature.Geometry<int>())
@@ -191,7 +192,7 @@ namespace Core.Debug
               PointF point = Conversion.ConvertGPSToPixel(latLng,
                       Conversion.GetBoundingBox(coord, config.zoom)
                     , (config.resolution, config.resolution));
-              texts.Add(new CanvasText ((int)point.X, (int)point.Y, feature.GetProperties()["name"].ToString(), SixLabors.ImageSharp.Color.Black)); 
+              texts.Add(new CanvasText((int)point.X, (int)point.Y, feature.GetProperties()["name"].ToString(), SixLabors.ImageSharp.Color.Black));
             }
           }
         }
