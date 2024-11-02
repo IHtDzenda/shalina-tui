@@ -151,10 +151,13 @@ public class PragueGeoData : GeoDataInterface
       DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
     PragueGeoDataResponse jsonResponse = JsonSerializer.Deserialize<PragueGeoDataResponse>(content, options);
-    GeoData[] geoData = new GeoData[jsonResponse.features.Count];
+    int count = jsonResponse.features.Where(f => f.properties.is_regional != "1").Count(); // TODO: make this configurable
+    GeoData[] geoData = new GeoData[count];
 
-    for (int i = 0; i < jsonResponse.features.Count; i++)
+    for (int i = 0; i < count; i++)
     {
+      if (jsonResponse.features[i].geometry.coordinates.Count == 0)
+        continue;
       geoData[i] = new GeoData
       {
         geometry = jsonResponse.features[i].geometry.coordinates,
