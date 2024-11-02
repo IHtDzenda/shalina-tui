@@ -48,6 +48,6 @@ namespace Core.Api.Maps
   public interface GeoDataInterface
   {
 
-    public abstract Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache = true);
+    public abstract Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config);
   }
 }

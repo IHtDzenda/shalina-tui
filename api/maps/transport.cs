@@ -12,5 +12,5 @@ public class Transport
 }
 public interface TransportInterface
 {
-  public abstract Task<Transport[]> getData((LatLng min, LatLng max) boundingBox);
+  public abstract Task<Transport[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config);
 }

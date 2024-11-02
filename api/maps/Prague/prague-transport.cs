@@ -49,7 +49,7 @@ public class PidTransportsResponse
 }
 public class PidData : TransportInterface
 {
-  public async Task<Transport[]> getData((LatLng min, LatLng max) boundingBox)
+  public async Task<Transport[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
   {
     string url = "https://mapa.pid.cz/getData.php";
     string jsonData = "{\"action\":\"getData\",\"bounds\":[" + boundingBox.min.Lng + "," + boundingBox.min.Lat + "," + boundingBox.max.Lng + "," + boundingBox.max.Lat + "]}";

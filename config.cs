@@ -9,23 +9,23 @@ namespace Core;
 public struct ColorScheme
 {
   [JsonPropertyName("water")]
-  public readonly Rgb24 Water { get; init;}
+  public readonly Rgb24 Water { get; init; }
   [JsonPropertyName("land")]
-  public readonly Rgb24 Land { get; init;}
+  public readonly Rgb24 Land { get; init; }
   [JsonPropertyName("grass")]
-  public readonly Rgb24 Grass { get; init;}
+  public readonly Rgb24 Grass { get; init; }
   [JsonPropertyName("tram")]
-  public readonly Rgb24 Tram { get; init;}
+  public readonly Rgb24 Tram { get; init; }
   [JsonPropertyName("subway")]
-  public readonly Rgb24 Subway { get; init;}
+  public readonly Rgb24 Subway { get; init; }
   [JsonPropertyName("rail")]
-  public readonly Rgb24 Rail { get; init;}
+  public readonly Rgb24 Rail { get; init; }
   [JsonPropertyName("bus")]
-  public readonly Rgb24 Bus { get; init;}
+  public readonly Rgb24 Bus { get; init; }
   [JsonPropertyName("ferry")]
-  public readonly Rgb24 Ferry { get; init;}
+  public readonly Rgb24 Ferry { get; init; }
   [JsonPropertyName("trolleybus")]
-  public readonly Rgb24 Trolleybus { get; init;}
+  public readonly Rgb24 Trolleybus { get; init; }
   public ColorScheme(Rgb24 Water, Rgb24 Land, Rgb24 Grass, Rgb24 Tram, Rgb24 Subway, Rgb24 Rail, Rgb24 Bus, Rgb24 Ferry, Rgb24 Trolleybus)
   {
     this.Water = Water;
@@ -54,16 +54,18 @@ public struct ColorScheme
 public struct Config
 {
   [JsonPropertyName("lat")]
-  public double latitude { get;set; } = 50.0753684;
+  public double latitude { get; set; } = 50.0753684;
   [JsonPropertyName("lon")]
   public double longitude { get; set; } = 14.4050773;
-  public readonly short resolution = AnsiConsole.Profile.Height > 32  && AnsiConsole.Profile.Width > 48// No get; means it won't be serialized
+  public readonly short resolution = AnsiConsole.Profile.Height > 32 && AnsiConsole.Profile.Width > 48// No get; means it won't be serialized
     ? (short)(AnsiConsole.Profile.Height - 8)
-    : throw new Exception("Terminal is too small(minimal height is 32  and width 48)");
+    : throw new Exception("Terminal is too small(minimal height is 32 and width 48)");
   [JsonPropertyName("zoom")]
   public readonly Byte zoom { get; init; } = 14;
   [JsonPropertyName("colorScheme")]
   public readonly ColorScheme colorScheme { get; init; } = ColorScheme.Default;
+  [JsonPropertyName("hideRegional")]
+  public bool hideRegional { get; set; } = true;
 
   public Config(double latitude, double longitude, Int16 resolution, Byte zoom, ColorScheme colorScheme)
   {
@@ -117,7 +119,8 @@ public struct Config
 
 public class Rgb24JsonSerializerExtension : JsonConverter<Rgb24>
 {
-  public override Rgb24 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)  {
+  public override Rgb24 Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+  {
     // Expecting a JSON string like "#FFEEDD"
     if (reader.TokenType != JsonTokenType.String)
     {
