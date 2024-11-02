@@ -14,11 +14,12 @@ namespace Core.Rendering
     public int y;
     public string text;
     public Rgb24 color;
-    public CanvasText(int x, int y, string text)
+    public CanvasText(int x, int y, string text, Rgb24 color)
     {
       this.x = x;
       this.y = y;
       this.text = text;
+      this.color = color;
     }
   }
 
@@ -42,6 +43,16 @@ namespace Core.Rendering
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
       this.texts = new CanvasText?[this.Height, this.Width];
     }
+    public CanvasImageWithText(string filename, CanvasText[] texts)
+    {
+      Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
+      this.texts = new CanvasText?[this.Height, this.Width];
+      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      foreach (CanvasText text in texts)
+      {
+        this.texts[text.y, text.x] = text;
+      }
+    }
 
     public CanvasImageWithText(ReadOnlySpan<byte> data)
     {
@@ -58,6 +69,16 @@ namespace Core.Rendering
     {
       Image = image;
       this.texts = new CanvasText?[this.Height, this.Width];
+    }
+    public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image, CanvasText[] texts)
+    {
+      Image = image;
+      this.texts = new CanvasText?[this.Height, this.Width];
+      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      foreach (CanvasText text in texts)
+      {
+        this.texts[text.y, text.x] = text;
+      }
     }
 
     public CanvasImageWithText AddText(CanvasText text)
@@ -119,6 +140,7 @@ namespace Core.Rendering
         image.Mutate(i => i.Resize(width, height, resampler));
       }
 
+      // Render the image
       for (var y = 0; y < height; y++)
       {
         CanvasText? currentText = null;
@@ -144,7 +166,7 @@ namespace Core.Rendering
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');
-          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B)));
+          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: new Color(currentText?.color.R ?? 255, currentText?.color.G ?? 255, currentText?.color.B ?? 255)));
         }
 
         yield return Segment.LineBreak;

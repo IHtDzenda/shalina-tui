@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
 using System.IO.Compression;
+using SixLabors.ImageSharp.PixelFormats;
 
-namespace Core.Util
+namespace Core
 {
   public class Util
   {
@@ -56,6 +57,33 @@ namespace Core.Util
       }
       Directory.CreateDirectory(cacheDir);
       return cacheDir;
+    }
+    public static string GetConfigPath()
+    {
+      OSPlatform os = GetOs();
+      string configPath = "";
+      if (os == OSPlatform.Windows)
+      {
+        configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\config.json";
+      }
+      else if (os == OSPlatform.Linux || os == OSPlatform.OSX)
+      {
+        string homepath = Environment.GetEnvironmentVariable("HOME")!;
+        configPath = homepath + @"/.config/shalina.json";
+      }
+      return configPath;
+    }
+    public static Rgb24 ParseHexColor(string hex)
+    {
+      if (hex == null || hex.Length != 6 || !hex.Substring(1).All(c => "0123456789ABCDEF".Contains(c)))
+      {
+        throw new ArgumentException("Invalid hex color format.");
+      }
+      return new Rgb24(
+        byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber),
+        byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber),
+        byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber)
+      );
     }
   }
 }
