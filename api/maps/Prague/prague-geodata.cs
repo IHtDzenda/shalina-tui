@@ -154,7 +154,7 @@ public class PragueGeoData : GeoDataInterface
     int count = jsonResponse.features.Where(f => f.properties.is_regional != "1").Count(); // TODO: make this configurable
     GeoData[] geoData = new GeoData[count];
 
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < jsonResponse.features.Count; i++)
     {
       if (jsonResponse.features[i].geometry.coordinates.Count == 0)
         continue;
