@@ -114,7 +114,7 @@ public static class Renderer
   {
     foreach (var city in cityGeoData)
     {
-      GeoData[] data = city.getData(boundingBox, true).Result;
+      GeoData[] data = city.getData(boundingBox, true, config).Result;
       foreach (var geoData in data)
       {
         if (geoData.geometry == null)
@@ -136,9 +136,11 @@ public static class Renderer
   {
     foreach (var city in cityLiveData)
     {
-      Transport[] data = city.getData(boundingBox).Result;
+      Transport[] data = city.getData(boundingBox, true, config).Result;
       foreach (var transport in data)
       {
+        if (transport.state == TripState.Inactive || transport.state == TripState.NotPublic) //TODO: Configurable
+          continue;
         LatLng location = new LatLng { Lat = transport.lat, Lng = transport.lon };
         PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
