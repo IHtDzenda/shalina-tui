@@ -1,6 +1,15 @@
 using Mapbox.VectorTile.Geometry;
 
 namespace Core.Api.Maps;
+
+public enum TripState{
+  Unknown,
+  Active,
+  AtStop,
+  NotPublic,
+  Inactive
+}
+
 public class Transport
 {
 
@@ -9,6 +18,7 @@ public class Transport
   public string? lineName { get; set; }
   public int delay { get; set; }
   public string? tripId { get; set; }
+  public TripState state { get; set; }
 }
 public interface TransportInterface
 {

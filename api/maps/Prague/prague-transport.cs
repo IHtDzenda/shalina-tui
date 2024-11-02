@@ -49,6 +49,18 @@ public class PidTransportsResponse
 }
 public class PidData : TransportInterface
 {
+  private static TripState GetTripState(PidTransport transport)
+  {
+    if (transport.Inactive)
+      return TripState.Inactive;
+    return transport.StatePosition switch
+    {
+      "at_stop" => TripState.AtStop,
+      "not_public" => TripState.NotPublic,
+      "on_track" => TripState.Active,
+      _ => TripState.Unknown
+    };
+  }
   public async Task<Transport[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
   {
     string url = "https://mapa.pid.cz/getData.php";
@@ -68,28 +80,26 @@ public class PidData : TransportInterface
         PropertyNameCaseInsensitive = true
       };
       PidTransportsResponse jsonResponse = JsonSerializer.Deserialize<PidTransportsResponse>(responseBody, options);
-      if (jsonResponse != null && jsonResponse != null && jsonResponse.Trips.Count > 0)
-      {
-        Transport[] transports = new Transport[jsonResponse.Trips.Count];
-        int i = 0;
-        foreach (var item in jsonResponse.Trips)
-        {
-          transports[i] = new Transport
-          {
-            lat = item.Value.Latitude,
-            lon = item.Value.Longitude,
-            lineName = item.Value.Route,
-            delay = item.Value.Delay,
-            tripId = item.Value.TripId
-          };
-          i++;
-        }
-        return transports;
-      }
-      else
-      {
+
+      if (jsonResponse == null || jsonResponse.Trips.Count == 0)
         return Array.Empty<Transport>();
+
+      int count = jsonResponse.Trips.Count;
+      Transport[] transports = new Transport[count];
+      for(int tripIndex = 0; tripIndex < count; tripIndex++)
+      {
+        PidTransport transport = jsonResponse.Trips.ElementAt(tripIndex).Value;
+        transports[tripIndex] = new Transport
+        {
+          lat = transport.Latitude,
+          lon = transport.Longitude,
+          lineName = transport.Route,
+          delay = transport.Delay,
+          tripId = transport.TripId,
+          state = GetTripState(transport)
+        };
       }
+      return transports;
     }
   }
 }
