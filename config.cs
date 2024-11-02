@@ -93,6 +93,12 @@ public struct Config
   // Reads a config json file and returns a Config object
   public static Config Load()
   {
+    if (!System.IO.File.Exists(Core.Util.GetConfigPath()))
+    {
+      Config config = new Config();
+      config.Save();
+      return config;
+    }
     return LoadFromFile(Core.Util.GetConfigPath());
   }
   public static Config LoadFromFile(string path)
@@ -120,7 +126,7 @@ public class Rgb24JsonSerializerExtension : JsonConverter<Rgb24>
 
     string hex = reader.GetString();
 
-    if (hex == null || hex.Length != 7 || hex[0] != '#' || !hex.Substring(1).All(c => "0123456789ABCDEF".Contains(c)))
+    if (hex == null || hex.Length != 7 || hex[0] != '#')
     {
       throw new JsonException("Invalid hex color format.");
     }
