@@ -117,9 +117,9 @@ public class PragueGeoData : GeoDataInterface
       { "2", RouteType.Rail },
       { "0", RouteType.Tram },
     };
-  public async Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache)
+  public async Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
   {
-    if(geoDataCache != null && useCache && geoDataCache.Length > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
+    if (geoDataCache != null && useCache && geoDataCache.Length > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {
       return geoDataCache;
     }
@@ -151,21 +151,28 @@ public class PragueGeoData : GeoDataInterface
       DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
     PragueGeoDataResponse jsonResponse = JsonSerializer.Deserialize<PragueGeoDataResponse>(content, options);
-    GeoData[] geoData = new GeoData[jsonResponse.features.Count];
+    int count = jsonResponse.features.Count;
+    if(config.hideRegional)
+      count = jsonResponse.features.Where(f => f.properties.is_regional != "1").Count();
+    GeoData[] geoData = new GeoData[count];
 
-    for (int i = 0; i < jsonResponse.features.Count; i++)
+    int geoDataIndex = 0;
+    foreach (var feature in jsonResponse.features)
     {
-      geoData[i] = new GeoData
+      if (config.hideRegional && feature.properties.is_regional == "1") // Skip regional routes if config says to not show them
+        continue;
+
+      geoData[geoDataIndex++] = new GeoData
       {
-        geometry = jsonResponse.features[i].geometry.coordinates,
-        routeId = jsonResponse.features[i].properties.route_id,
-        routeDisplayNumber = jsonResponse.features[i].properties.route_short_name,
-        routeNameLong = jsonResponse.features[i].properties.route_long_name,
-        routeColor = Util.ParseHexColor(jsonResponse.features[i].properties.route_color),
-        routeUrl = jsonResponse.features[i].properties.route_url,
-        isSubsitute = jsonResponse.features[i].properties.is_substitute_transport == "1",
-        isNightRoute = jsonResponse.features[i].properties.is_night == "1",
-        routeType = routeTypeMap.GetValueOrDefault(jsonResponse.features[i].properties.route_type, RouteType.Other)
+        geometry = feature.geometry.coordinates,
+        routeId = feature.properties.route_id,
+        routeDisplayNumber = feature.properties.route_short_name,
+        routeNameLong = feature.properties.route_long_name,
+        routeColor = Util.ParseHexColor(feature.properties.route_color),
+        routeUrl = feature.properties.route_url,
+        isSubsitute = feature.properties.is_substitute_transport == "1",
+        isNightRoute = feature.properties.is_night == "1",
+        routeType = routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other)
       };
     }
     geoDataCache = geoData;
