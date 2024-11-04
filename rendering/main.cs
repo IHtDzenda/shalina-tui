@@ -49,15 +49,15 @@ public static class Renderer
         }
       }
       catch { }
-      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme.Water, layer.Extent);
+      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme.Water, layer.Extent, new DrawingOptions());
     }
   }
   private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
-      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme.Grass, layer.Extent);
+      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme.Grass, layer.Extent, new DrawingOptions());
   }
-  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent)
+  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
     if (feature.GeometryType == GeomType.POLYGON)
     {
@@ -92,6 +92,7 @@ public static class Renderer
       image.Mutate(ctx => operation(ctx, points));
     }
   }
+
   // Render data from vector tiles (water, greenspace, etc.) - background
   private static void RenderVectorTiles(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
   {
@@ -109,6 +110,7 @@ public static class Renderer
       }
     }
   }
+
   // Render data from geojson files (public transport, etc.) - city specific data(shows routes)
   private static void RenderGeoData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
   {
@@ -131,6 +133,7 @@ public static class Renderer
       }
     }
   }
+
   // Render live data (public transport, etc.) - city specific data(shows vehicles)
   private static void RenderLiveData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
   {
@@ -153,13 +156,10 @@ public static class Renderer
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null) // First time
-    {
       image = new Image<Rgb24>(config.resolution, config.resolution, config.colorScheme.Land);
-    }
     else
-    {
       image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
-    }
+
     texts.Clear();
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
     (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
