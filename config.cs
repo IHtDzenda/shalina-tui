@@ -57,22 +57,22 @@ public struct Config
   public double latitude { get; set; } = 50.0753684;
   [JsonPropertyName("lon")]
   public double longitude { get; set; } = 14.4050773;
-  public readonly short resolution = AnsiConsole.Profile.Height > 32 && AnsiConsole.Profile.Width > 48// No get; means it won't be serialized
-    ? (short)(AnsiConsole.Profile.Height - 8)
-    : throw new Exception("Terminal is too small(minimal height is 32 and width 48)");
   [JsonPropertyName("zoom")]
   public Byte zoom { get; set; } = 14;
+  [JsonPropertyName("resolution")]
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public (short width, short height) resolution { get; set; } = ((short)( AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
   [JsonPropertyName("colorScheme")]
   public ColorScheme colorScheme { get; init; } = ColorScheme.Default;
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
 
-  public Config(double latitude, double longitude, Int16 resolution, Byte zoom, ColorScheme colorScheme)
+  public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, ColorScheme colorScheme)
   {
     this.latitude = latitude;
     this.longitude = longitude;
-    this.resolution = resolution;
     this.zoom = zoom;
+    this.resolution = resolution;
     this.colorScheme = colorScheme;
   }
   public Config(double latitude, double longitude)
