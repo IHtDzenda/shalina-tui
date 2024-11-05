@@ -139,7 +139,7 @@ public static class Renderer
   {
     foreach (var city in cityLiveData)
     {
-      Transport[] data = city.getData(boundingBox, true, config).Result;
+      Transport[] data = city.getData(boundingBox, config).Result;
       foreach (var transport in data)
       {
         if (transport.state == TripState.Inactive || transport.state == TripState.NotPublic) //TODO: Configurable

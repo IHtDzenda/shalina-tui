@@ -32,6 +32,18 @@ namespace Core.Api.Maps
     {
       return new LatLng { Lat = a.Lat / b, Lng = a.Lng / b };
     }
+    public static bool Equals(this LatLng a, LatLng b)
+    {
+      return a.Lat == b.Lat && a.Lng == b.Lng;
+    }
+    public static bool GreaterThan(this LatLng a, LatLng b)
+    {
+      return a.Lat > b.Lat && a.Lng > b.Lng;
+    }
+    public static bool LessThan(this LatLng a, LatLng b)
+    {
+      return a.Lat < b.Lat && a.Lng < b.Lng;
+    }
   }
   public class GeoData
   {
