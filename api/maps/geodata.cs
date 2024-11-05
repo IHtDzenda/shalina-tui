@@ -36,6 +36,14 @@ namespace Core.Api.Maps
     {
       return a.Lat == b.Lat && a.Lng == b.Lng;
     }
+    public static bool GreaterThan(this LatLng a, LatLng b)
+    {
+      return a.Lat > b.Lat && a.Lng > b.Lng;
+    }
+    public static bool LessThan(this LatLng a, LatLng b)
+    {
+      return a.Lat < b.Lat && a.Lng < b.Lng;
+    }
   }
   public class GeoData
   {

@@ -19,34 +19,44 @@ public class Program
     {
       if (Console.KeyAvailable)
       {
-        HandleKeyPress(Console.ReadKey(intercept: true).Key);  // Read the key without displaying it
-        rerender = true;  // Trigger immediate rerender
+        HandleKeyPress(Console.ReadKey(intercept: true)); // Read the key without displaying it
+        rerender = true; // Trigger immediate rerender
       }
-      await Task.Delay(100);  // Check for key press every 100ms
+      await Task.Delay(10);
     }
-  }   
-  static void HandleKeyPress(ConsoleKey key)
+  }
+  static void HandleKeyPress(ConsoleKeyInfo key)
+  {
+    switch (key.Key)
     {
-        // Adjust config based on arrow key pressed
-        switch (key)
+      case ConsoleKey.UpArrow:
+        config.latitude += 0.001;  // Increase some value in the config
+        break;
+      case ConsoleKey.DownArrow:
+        config.latitude -= 0.001;  // Decrease some value in the config
+        break;
+      case ConsoleKey.LeftArrow:
+        config.longitude -= 0.001;  // Adjust another config value
+        break;
+      case ConsoleKey.RightArrow:
+        config.longitude += 0.001;  // Adjust another config value
+        break;
+      case ConsoleKey.Escape:
+        cts.Cancel();  // Stop the rendering loop
+        Environment.Exit(0);  // Exit the program
+        break;
+      default:
+        if (key.KeyChar == '-')
         {
-            case ConsoleKey.UpArrow:
-                config.latitude += 0.001;  // Increase some value in the config
-                break;
-            case ConsoleKey.DownArrow:
-                config.latitude -= 0.001;  // Decrease some value in the config
-                break;
-            case ConsoleKey.LeftArrow:
-                config.longitude -= 0.001;  // Adjust another config value
-                break;
-            case ConsoleKey.RightArrow:
-                config.longitude += 0.001;  // Adjust another config value
-                break;
-            default:
-                // Handle other keys if needed
-                break;
+          config.zoom--;  // Zoom out
         }
+        else if (key.KeyChar == '+')
+        {
+          config.zoom++;  // Zoom in
+        }
+        break;
     }
+  }
 
   static void RenderLoop(CancellationToken token)
   {
@@ -56,25 +66,20 @@ public class Program
       stopwatch.Start();
 
       // Load configuration and render the map
-      AnsiConsole.Write(Renderer.RenderMap(config, false));
+      AnsiConsole.Write(Renderer.RenderMap(config, true));
 
       stopwatch.Stop();
       AnsiConsole.WriteLine($"Time elapsed: {stopwatch.ElapsedMilliseconds}ms");
-
-      // Adjust sleep time to compensate for rendering duration
-      int delay = 5000 - (int)stopwatch.ElapsedMilliseconds;
-      if (delay > 0)
+      for (int i = 0; i < 100; i++)
       {
-        // Check if rerender was requested before the delay ends
-        for (int i = 0; i < delay / 100; i++)
+        if (rerender)
         {
-          if (rerender)
-          {
-            rerender = false;
-            break;
-          }
-          Thread.Sleep(100);  // Sleep in small increments
+          rerender = false;
+          break;
         }
+        if (token.IsCancellationRequested)
+          return;
+        Thread.Sleep(10);
       }
     }
   }

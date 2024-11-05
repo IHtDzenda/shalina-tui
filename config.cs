@@ -61,9 +61,9 @@ public struct Config
     ? (short)(AnsiConsole.Profile.Height - 8)
     : throw new Exception("Terminal is too small(minimal height is 32 and width 48)");
   [JsonPropertyName("zoom")]
-  public readonly Byte zoom { get; init; } = 14;
+  public Byte zoom { get; set; } = 14;
   [JsonPropertyName("colorScheme")]
-  public readonly ColorScheme colorScheme { get; init; } = ColorScheme.Default;
+  public ColorScheme colorScheme { get; init; } = ColorScheme.Default;
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
 

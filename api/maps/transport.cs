@@ -28,13 +28,18 @@ public abstract class TransportInterface
 
   private void CacheThread(Config config)
   {
+    (LatLng min, LatLng max) getExpandedBoundingBox((LatLng min, LatLng max) boundingBox) =>
+      (
+        boundingBox.min.Subtract(boundingBox.max.Subtract(boundingBox.min).Divide(2)),
+        boundingBox.max.Add(boundingBox.max.Subtract(boundingBox.min).Divide(2))
+      );
     while (true)
     {
-      Thread.Sleep(5000); // TODO: Configurable
+      Thread.Sleep(1000); // TODO: Configurable
       transportsCache = getData(
-        boundingBox,
+        getExpandedBoundingBox(boundingBox),
         config,
-        false).Result; // The whole Czech Republic
+        false).Result;
     }
   }
 
@@ -45,20 +50,13 @@ public abstract class TransportInterface
     if (!useCache)
       return await getTransports(boundingBox, config);
 
+    this.boundingBox = boundingBox;
     if (transportsCache == null)
     {
       transportsCache = await getTransports(boundingBox, config);
-      this.boundingBox = boundingBox;
       Thread thread = new Thread(() => CacheThread(config));
       thread.IsBackground = true;
       thread.Start();
-    }
-    if (boundingBox.min.Equals(this.boundingBox.min) && boundingBox.max.Equals(this.boundingBox.max))
-      return transportsCache;
-    else
-    {
-      transportsCache = await getTransports(boundingBox, config);
-      this.boundingBox = boundingBox;
     }
     return transportsCache;
   }
