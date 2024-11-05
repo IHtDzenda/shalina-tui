@@ -7,7 +7,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Spectre.Console;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace Core.Rendering;
@@ -157,8 +156,8 @@ public static class Renderer
   }
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
-    if (image == null) // First time
-      image = new Image<Rgb24>(AnsiConsole.Profile.Height, AnsiConsole.Profile.Height, config.colorScheme.Land);
+    if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
+      image = new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme.Land);
     else
       image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
 

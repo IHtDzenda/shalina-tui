@@ -59,16 +59,20 @@ public struct Config
   public double longitude { get; set; } = 14.4050773;
   [JsonPropertyName("zoom")]
   public Byte zoom { get; set; } = 14;
+  [JsonPropertyName("resolution")]
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public (short width, short height) resolution { get; set; } = ((short)( AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
   [JsonPropertyName("colorScheme")]
   public ColorScheme colorScheme { get; init; } = ColorScheme.Default;
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
 
-  public Config(double latitude, double longitude, Int16 resolution, Byte zoom, ColorScheme colorScheme)
+  public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, ColorScheme colorScheme)
   {
     this.latitude = latitude;
     this.longitude = longitude;
     this.zoom = zoom;
+    this.resolution = resolution;
     this.colorScheme = colorScheme;
   }
   public Config(double latitude, double longitude)

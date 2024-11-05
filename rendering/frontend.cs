@@ -67,7 +67,7 @@ namespace Core.Rendering
                 Align.Center(
                   Renderer.RenderMap(config, true),
                   VerticalAlignment.Middle))
-              .Border(BoxBorder.None)).MinimumSize((int)(AnsiConsole.Profile.Height * 2));
+              .Border(BoxBorder.None)).MinimumSize((int)((config.resolution.width + 1) * 2));
           layout["Top"].Update(
               new Panel(
                 Align.Center(
