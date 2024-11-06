@@ -148,6 +148,10 @@ namespace Core.Rendering
         {
           var color = image[x, y];
 
+          if(currentText != null && x > currentText.Value.x + (currentText.Value.text.Length - 1) / this.PixelWidth)
+          {
+            currentText = null;
+          }
           if (this.texts[y, x] != null)
           {
             currentText = this.texts[y, x];
