@@ -41,55 +41,56 @@ namespace Core.Rendering
     public CanvasImageWithText(string filename)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new CanvasText?[this.Width, this.Height];
     }
     public CanvasImageWithText(string filename, CanvasText[] texts)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
-      this.texts = new CanvasText?[this.Height, this.Width];
-      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      this.texts = new CanvasText?[this.Width, this.Height];
       foreach (CanvasText text in texts)
       {
-        this.texts[text.y, text.x] = text;
+        AddText(text);
       }
     }
 
     public CanvasImageWithText(ReadOnlySpan<byte> data)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(data);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new CanvasText?[this.Width, this.Height];
     }
 
     public CanvasImageWithText(Stream data)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(data);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new CanvasText?[this.Width, this.Height];
     }
     public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image)
     {
       Image = image;
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new CanvasText?[this.Width, this.Height];
     }
     public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image, CanvasText[] texts)
     {
       Image = image;
-      this.texts = new CanvasText?[this.Height, this.Width];
-      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      this.texts = new CanvasText?[this.Width, this.Height];
       foreach (CanvasText text in texts)
       {
-        this.texts[text.y, text.x] = text;
+        this.AddText(text);
       }
     }
 
     public CanvasImageWithText AddText(CanvasText text)
     {
-      if (text.x + text.text.Length >= this.Width || text.y >= this.Height)
+      if(text.x < 0 || text.y < 0 || text.x >= this.Width || text.y >= this.Height)
       {
-        throw new ArgumentOutOfRangeException();
+        return this;
       }
-
-      this.texts[text.y, text.x] = text;
+      this.texts[text.x, text.y] = text;
       return this;
+    }
+    public void ClearTexts()
+    {
+      this.texts = new CanvasText?[this.Width, this.Height];
     }
 
 
@@ -152,9 +153,9 @@ namespace Core.Rendering
           {
             currentText = null;
           }
-          if (this.texts[y, x] != null)
+          if (this.texts[x, y] != null)
           {
-            currentText = this.texts[y, x];
+            currentText = this.texts[x, y];
           }
 
           string pixel = "";
@@ -162,11 +163,11 @@ namespace Core.Rendering
           {
             for (byte i = 0; i < this.PixelWidth; i++)
             {
-              if (((x - currentText.Value.x) * this.PixelWidth + i) >= currentText.Value.text.Length)
+              if ((x - currentText.Value.x) * this.PixelWidth + i >= currentText.Value.text.Length)
               {
                 break;
               }
-              pixel += currentText.Value.text[(x - currentText.Value.x) * this.PixelWidth + i];
+              pixel += currentText.Value.text[(x - currentText.Value.x ) * this.PixelWidth  + i];
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');

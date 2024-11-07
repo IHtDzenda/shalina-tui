@@ -36,8 +36,7 @@ public static class Renderer
     }
   };
 
-  static Image<Rgb24> image;
-  static List<CanvasText> texts = new List<CanvasText>();
+  static CanvasImageWithText image;
   private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
@@ -146,8 +145,8 @@ public static class Renderer
         PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
-        texts.Add(new CanvasText((int)point.X + 1, (int)point.Y, stop.name, Color.Black));
-        image[(int)point.X, (int)point.Y] = stop.color;
+        image.AddText(new CanvasText((int)point.X + 1, (int)point.Y, stop.name, Color.Black));
+        image.Image[(int)point.X, (int)point.Y] = stop.color;
       }
     }
   }
@@ -166,19 +165,21 @@ public static class Renderer
         PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
-        texts.Add(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
-        image[(int)point.X, (int)point.Y] = Color.White;
+        image.AddText(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
+        image.Image[(int)point.X, (int)point.Y] = Color.White;
       }
     }
   }
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
-      image = new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme.Land);
+      image = new CanvasImageWithText(new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme.Land));
     else
-      image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
+    {
+      image.Image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
+      image.ClearTexts();
+    }
 
-    texts.Clear();
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
     (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
     RenderVectorTiles(config, coord, boundingBox);
@@ -187,7 +188,7 @@ public static class Renderer
     if (renderLive)
       RenderLiveData(config, coord, boundingBox);
 
-    return new CanvasImageWithText(image, texts.ToArray());
+    return image;
   }
 }
 
