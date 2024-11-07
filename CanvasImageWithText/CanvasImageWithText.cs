@@ -36,60 +36,64 @@ namespace Core.Rendering
     public IResampler? Resampler { get; set; }
     internal SixLabors.ImageSharp.Image<Rgb24> Image { get; }
 
-    internal CanvasText?[,] texts;
+    internal Stack<CanvasText>[,] texts;
 
     public CanvasImageWithText(string filename)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
     }
     public CanvasImageWithText(string filename, CanvasText[] texts)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(filename);
-      this.texts = new CanvasText?[this.Height, this.Width];
-      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
       foreach (CanvasText text in texts)
       {
-        this.texts[text.y, text.x] = text;
+        AddText(text);
       }
     }
 
     public CanvasImageWithText(ReadOnlySpan<byte> data)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(data);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
     }
 
     public CanvasImageWithText(Stream data)
     {
       Image = SixLabors.ImageSharp.Image.Load<Rgb24>(data);
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
     }
     public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image)
     {
       Image = image;
-      this.texts = new CanvasText?[this.Height, this.Width];
+      this.texts = new  Stack<CanvasText>[this.Width, this.Height];
     }
     public CanvasImageWithText(SixLabors.ImageSharp.Image<Rgb24> image, CanvasText[] texts)
     {
       Image = image;
-      this.texts = new CanvasText?[this.Height, this.Width];
-      texts = texts.Where(text => text.x + text.text.Length < this.Width && text.y < this.Height && text.x >= 0 && text.y >= 0).ToArray();
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
       foreach (CanvasText text in texts)
       {
-        this.texts[text.y, text.x] = text;
+        this.AddText(text);
       }
     }
 
     public CanvasImageWithText AddText(CanvasText text)
     {
-      if (text.x + text.text.Length >= this.Width || text.y >= this.Height)
+      if(text.x < 0 || text.y < 0 || text.x >= this.Width || text.y >= this.Height)
       {
-        throw new ArgumentOutOfRangeException();
+        return this;
       }
-
-      this.texts[text.y, text.x] = text;
+      if (this.texts[text.x, text.y] == null){
+        this.texts[text.x, text.y] = new Stack<CanvasText>();
+      }
+      this.texts[text.x, text.y].Push(text);
       return this;
+    }
+    public void ClearTexts()
+    {
+      this.texts = new Stack<CanvasText>[this.Width, this.Height];
     }
 
 
@@ -143,30 +147,37 @@ namespace Core.Rendering
       // Render the image
       for (var y = 0; y < height; y++)
       {
-        CanvasText? currentText = null;
+        Stack<CanvasText> currentText = new Stack<CanvasText>();
         for (var x = 0; x < width; x++)
         {
           var color = image[x, y];
 
-          if (this.texts[y, x] != null)
+          if(currentText.Count > 0 && x > currentText.Peek().x + (currentText.Peek().text.Length - 1) / this.PixelWidth)
           {
-            currentText = this.texts[y, x];
+            currentText.Pop();
+          }
+          if (this.texts[x, y] != null)
+          {
+            foreach (CanvasText text in this.texts[x, y])
+            {
+              currentText.Push(text);
+            }
           }
 
           string pixel = "";
-          if (currentText != null)
+          if (currentText.Count > 0)
           {
             for (byte i = 0; i < this.PixelWidth; i++)
             {
-              if (((x - currentText.Value.x) * this.PixelWidth + i) >= currentText.Value.text.Length)
+              if ((x - currentText.Peek().x) * this.PixelWidth + i >= currentText.Peek().text.Length)
               {
                 break;
               }
-              pixel += currentText.Value.text[(x - currentText.Value.x) * this.PixelWidth + i];
+              pixel += currentText.Peek().text[(x - currentText.Peek().x ) * this.PixelWidth  + i];
             }
           }
           pixel = pixel.PadRight(PixelWidth, ' ');
-          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: new Color(currentText?.color.R ?? 255, currentText?.color.G ?? 255, currentText?.color.B ?? 255)));
+          yield return new Segment(pixel, new Style(background: new Color(color.R, color.G, color.B), foreground: currentText.Count > 0 ? new Color(currentText.Peek().color.R, currentText.Peek().color.G, currentText.Peek().color.B) : Color.Default));
         }
 
         yield return Segment.LineBreak;
