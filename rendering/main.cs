@@ -50,13 +50,13 @@ public static class Renderer
         }
       }
       catch { }
-      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme.Water, layer.Extent, new DrawingOptions());
+      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme["water"], layer.Extent, new DrawingOptions());
     }
   }
   private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
-      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme.Grass, layer.Extent, new DrawingOptions());
+      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme["grass"], layer.Extent, new DrawingOptions());
   }
   private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
@@ -157,9 +157,9 @@ public static class Renderer
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
-      image = new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme.Land);
+      image = new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]);
     else
-      image.Mutate(ctx => ctx.Clear(config.colorScheme.Land));
+      image.Mutate(ctx => ctx.Clear(config.colorScheme["land"]));
 
     texts.Clear();
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };

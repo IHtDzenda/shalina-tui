@@ -6,51 +6,6 @@ using Color = SixLabors.ImageSharp.Color;
 
 namespace Core;
 
-public struct ColorScheme
-{
-  [JsonPropertyName("water")]
-  public readonly Rgb24 Water { get; init; }
-  [JsonPropertyName("land")]
-  public readonly Rgb24 Land { get; init; }
-  [JsonPropertyName("grass")]
-  public readonly Rgb24 Grass { get; init; }
-  [JsonPropertyName("tram")]
-  public readonly Rgb24 Tram { get; init; }
-  [JsonPropertyName("subway")]
-  public readonly Rgb24 Subway { get; init; }
-  [JsonPropertyName("rail")]
-  public readonly Rgb24 Rail { get; init; }
-  [JsonPropertyName("bus")]
-  public readonly Rgb24 Bus { get; init; }
-  [JsonPropertyName("ferry")]
-  public readonly Rgb24 Ferry { get; init; }
-  [JsonPropertyName("trolleybus")]
-  public readonly Rgb24 Trolleybus { get; init; }
-  public ColorScheme(Rgb24 Water, Rgb24 Land, Rgb24 Grass, Rgb24 Tram, Rgb24 Subway, Rgb24 Rail, Rgb24 Bus, Rgb24 Ferry, Rgb24 Trolleybus)
-  {
-    this.Water = Water;
-    this.Land = Land;
-    this.Grass = Grass;
-    this.Tram = Tram;
-    this.Subway = Subway;
-    this.Rail = Rail;
-    this.Bus = Bus;
-    this.Ferry = Ferry;
-    this.Trolleybus = Trolleybus;
-  }
-  public static ColorScheme Default = new ColorScheme
-  (
-    Color.DarkBlue,
-    Color.Gray,
-    Color.Green,
-    new Rgb24(30, 30, 30),
-    new Rgb24(30, 30, 30),
-    new Rgb24(30, 30, 30),
-    Color.Red,
-    new Rgb24(30, 30, 30),
-    new Rgb24(30, 30, 30)
-  );
-}
 public struct Config
 {
   [JsonPropertyName("lat")]
@@ -61,13 +16,39 @@ public struct Config
   public Byte zoom { get; set; } = 14;
   [JsonPropertyName("resolution")]
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public (short width, short height) resolution { get; set; } = ((short)( AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
+  public (short width, short height) resolution { get; set; } = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
   [JsonPropertyName("colorScheme")]
-  public ColorScheme colorScheme { get; init; } = ColorScheme.Default;
+  public Dictionary<string, Rgb24> colorScheme { get; init; } = new Dictionary<string, Rgb24>
+  {
+    { "water", Color.DarkBlue },
+    { "land", Color.Gray },
+    { "grass", Color.Green },
+    { "tram", Color.DarkBlue },
+    { "subway", Color.DarkBlue },
+    { "rail", Color.DarkBlue },
+    { "bus", Color.Red },
+    { "ferry", Color.DarkBlue },
+    { "trolleybus", Color.DarkBlue },
+    { "other", Color.DarkBlue }
+  };
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public string query { get; set; } = "";
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public bool isSearching { get; set; } = false;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public bool isSidebarOpen { get; set; } = true;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public bool isConfigOpen { get; set; } = false;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public int cursorConfigIndex { get; set; } = 0;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public bool isEditingConfig { get; set; } = false;
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public string newConfigValue { get; set; } = "";
 
-  public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, ColorScheme colorScheme)
+  public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, Dictionary<string, Rgb24> colorScheme)
   {
     this.latitude = latitude;
     this.longitude = longitude;
