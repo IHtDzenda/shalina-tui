@@ -1,26 +1,43 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Mapbox.VectorTile.Geometry;
+using SixLabors.ImageSharp;
 
 namespace Core.Api.Maps.Prague;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum WheelChairAccess
 {
   notPossible,
   possible,
   unknown
 }
-public enum TrafficType
+public class TrafficTypeConvertor : JsonConverter<RouteType>
 {
-  bus,
-  ferry,
-  metroA,
-  metroB,
-  metroC,
-  train,
-  tram,
-  trolleybus,
-  undefined
+  public override RouteType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+  {
+    string value = reader.GetString()?.ToLowerInvariant();
+
+    if(value.StartsWith("metro", StringComparison.InvariantCultureIgnoreCase))
+    {
+      return RouteType.Subway;
+      
+    }
+    return value switch
+    {
+      "bus" => RouteType.Bus,
+      "ferry" => RouteType.Ferry,
+      "train" => RouteType.Rail,
+      "tram" => RouteType.Tram,
+      "trolleybus" => RouteType.Trolleybus,
+      _ => RouteType.Other
+    };
+  }
+
+  public override void Write(Utf8JsonWriter writer, RouteType value, JsonSerializerOptions options)
+  {
+    writer.WriteStringValue(value.ToString());
+  }
 }
 public class PidLine
 {
@@ -29,7 +46,7 @@ public class PidLine
   [JsonPropertyName("name")]
   public string Name { get; set; }
   [JsonPropertyName("type")]
-  public TrafficType Type { get; set; }
+  public RouteType Type { get; set; }
   [JsonPropertyName("direction")]
   public string Direction { get; set; }
   [JsonPropertyName("direction2")]
@@ -54,7 +71,7 @@ public class PidStop
   [JsonPropertyName("zone")]
   public string Zone { get; set; }
   [JsonPropertyName("mainTrafficType")]
-  public TrafficType MainTrafficType { get; set; }
+  public RouteType MainTrafficType { get; set; }
   [JsonPropertyName("wheelchairAccess")]
   public WheelChairAccess WheelchairAccess { get; set; }
   [JsonPropertyName("gtfsIds")]
@@ -92,7 +109,7 @@ public class PidStopGroup
   [JsonPropertyName("municipality")]
   public string Municipality { get; set; }
   [JsonPropertyName("mainTrafficType")]
-  public TrafficType MainTrafficType { get; set; }
+  public RouteType MainTrafficType { get; set; }
   [JsonPropertyName("stops")]
   public List<PidStop> Stops { get; set; }
 }
@@ -120,8 +137,13 @@ public class PidStopData : StopsInterface
       {
         throw new Exception("Request failed!");
       }
-      pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(await response.Content.ReadAsStreamAsync());
-      File.WriteAllText(filePath, JsonSerializer.Serialize(pidStops));
+      JsonSerializerOptions options = new JsonSerializerOptions
+      {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new TrafficTypeConvertor() }
+      };
+      pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(await response.Content.ReadAsStreamAsync(), options);
+      File.WriteAllText(filePath, JsonSerializer.Serialize(pidStops, options));
     }
     return pidStops.StopGroups.Select(sg =>
     {
@@ -131,18 +153,8 @@ public class PidStopData : StopsInterface
         id = sg.UniqueName,
         location = new LatLng { Lat = sg.AvgLat, Lng = sg.AvgLon },
         municipality = sg.Municipality,
-        mainRouteType = sg.MainTrafficType switch
-        {
-          TrafficType.bus => RouteType.Bus,
-          TrafficType.ferry => RouteType.Ferry,
-          TrafficType.metroA => RouteType.Subway,
-          TrafficType.metroB => RouteType.Subway,
-          TrafficType.metroC => RouteType.Subway,
-          TrafficType.train => RouteType.Rail,
-          TrafficType.tram => RouteType.Tram,
-          TrafficType.trolleybus => RouteType.Trolleybus,
-          _ => RouteType.Other
-        }
+        mainRouteType = sg.MainTrafficType,
+        color = Color.Black,
       };
     }).ToArray();
   }

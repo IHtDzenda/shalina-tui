@@ -104,7 +104,7 @@ public class CoordinatesConverter : JsonConverter<List<List<LatLng>>>
   }
 }
 
-public class PragueGeoData : GeoDataInterface
+public class PidGeoData : GeoDataInterface
 {
   private static GeoData[] geoDataCache;
   private static DateTime lastCacheUpdate = DateTime.MinValue;
