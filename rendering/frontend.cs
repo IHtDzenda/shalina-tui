@@ -26,8 +26,8 @@ namespace Core.Rendering
     }
     public static string RenderSearch()
     {
-      string search = !config.isSearching && config.query.Length == 0 ? "[gray]press F to toggle search[/]" : config.isSearching ? $"[red]{config.query}[/]" : $"[gray]{config.query}";
-      return $"Search for a location \n-> {search}";
+      string search = !config.isSearching && config.query.Length == 0 ? "[gray](press F to focus search)[/]" : config.isSearching ? $"[red]{config.query}[/]" : $"[gray]{config.query}";
+      return $"Search and filter connections \n-> {search}";
     }
     public static string RenderSidebar(Config config)
     {
@@ -65,12 +65,25 @@ namespace Core.Rendering
       {
         if (Console.KeyAvailable)
         {
-          HandleKeyPress(Console.ReadKey(intercept: true)); // Read the key without displaying it
+          ConsoleKeyInfo key = Console.ReadKey(intercept: true);
+          switch (config.layout)
+          {
+            case Config.Layout.Map:
+              HandleMapKeyPress(key);
+              break;
+            case Config.Layout.Config:
+              HandleSidebarKeyPress(key);
+              break;
+            case Config.Layout.Search:
+              HandleSidebarKeyPress(key);
+              break;
+          }
           rerender = true; // Trigger immediate rerender
         }
         await Task.Delay(10);
       }
     }
+
 
     static async Task RenderLoop(CancellationToken token)
     {
@@ -87,7 +100,7 @@ namespace Core.Rendering
         {
           Stopwatch stopwatch = new Stopwatch();
           stopwatch.Start();
-
+          bool isSidebarSelected = config.isSearching || config.isConfigOpen || config.isEditingConfig;
           var layout = config.isSidebarOpen ? new Layout("Root")
                     .SplitColumns(
                         new Layout("Left"),
@@ -111,13 +124,13 @@ namespace Core.Rendering
                 new Panel(
                   Align.Center(
                     new Markup(RenderTooltip()),
-                    VerticalAlignment.Top))
+                    VerticalAlignment.Top)).BorderColor(isSidebarSelected ? Color.Red : Color.Default)
                 .Expand());
             layout["Bottom"].Update(
                 new Panel(
                   Align.Center(
                     new Markup($"Running at {1000 / stopwatch.ElapsedMilliseconds} FPS \n {RenderSidebar(config)}"),
-                    VerticalAlignment.Top))
+                    VerticalAlignment.Bottom))
                 .Expand());
           }
 
@@ -141,52 +154,23 @@ namespace Core.Rendering
         }
       });
     }
-
-    static void HandleKeyPress(ConsoleKeyInfo key)
+    private static void HandleSidebarKeyPress(ConsoleKeyInfo key)
     {
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
-          if (config.isConfigOpen)
+          config.cursorConfigIndex--;
+          if (config.cursorConfigIndex < 0)
           {
-            config.cursorConfigIndex--;
-            if (config.cursorConfigIndex < 0)
-            {
-              config.cursorConfigIndex = config.colorScheme.Count - 1;
-            }
-            break;
+            config.cursorConfigIndex = config.colorScheme.Count - 1;
           }
-          config.latitude += 0.001;
           break;
         case ConsoleKey.DownArrow:
-          if (config.isConfigOpen)
+          config.cursorConfigIndex++;
+          if (config.cursorConfigIndex >= config.colorScheme.Count)
           {
-            config.cursorConfigIndex++;
-            if (config.cursorConfigIndex >= config.colorScheme.Count)
-            {
-              config.cursorConfigIndex = 0;
-            }
-            break;
+            config.cursorConfigIndex = 0;
           }
-          config.latitude -= 0.001;
-          break;
-        case ConsoleKey.LeftArrow:
-          config.longitude -= 0.001;
-          break;
-        case ConsoleKey.RightArrow:
-          config.longitude += 0.001;
-          break;
-        case ConsoleKey.Q:
-          cts.Cancel();
-          Environment.Exit(0);
-          break;
-        case ConsoleKey.F:
-          if (config.isEditingConfig || !config.isSidebarOpen)
-            break;
-          config.isSearching = !config.isSearching;
-          break;
-        case ConsoleKey.C:
-          config.isConfigOpen = !config.isConfigOpen;
           break;
         case ConsoleKey.Enter:
           if (config.isConfigOpen && config.isEditingConfig)
@@ -202,23 +186,12 @@ namespace Core.Rendering
           }
 
           break;
-
-        case ConsoleKey.H:
-          config.isSidebarOpen = !config.isSidebarOpen;
-          if (!config.isSidebarOpen)
-          {
-            config.resolution = ((short)((AnsiConsole.Profile.Width - 1) / 2), (short)AnsiConsole.Profile.Height);
-          }
-          else
-          {
-            config.resolution = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height);
-          }
-          rerender = true;
-          break;
         case ConsoleKey.Escape:
+
           if (config.isEditingConfig)
           {
             config.isEditingConfig = false;
+            break;
           }
           else if (config.isConfigOpen)
           {
@@ -229,6 +202,7 @@ namespace Core.Rendering
             config.isSearching = false;
             config.query = "";
           }
+          config.layout = Config.Layout.Map;
           break;
         case ConsoleKey.Backspace:
           if (config.query.Length > 0 && config.isSearching)
@@ -241,15 +215,7 @@ namespace Core.Rendering
           }
           break;
         default:
-          if (key.KeyChar == '-')
-          {
-            config.zoom--;
-          }
-          else if (key.KeyChar == '+')
-          {
-            config.zoom++;
-          }
-          else if (config.isSearching)
+          if (config.isSearching)
           {
             config.query = config.query + key.KeyChar.ToString();
           }
@@ -260,5 +226,58 @@ namespace Core.Rendering
           break;
       }
     }
+    static void HandleMapKeyPress(ConsoleKeyInfo key)
+    {
+      switch (key.Key)
+      {
+        case ConsoleKey.UpArrow:
+          config.latitude += 0.001;
+          break;
+        case ConsoleKey.DownArrow:
+          config.latitude -= 0.001;
+          break;
+        case ConsoleKey.LeftArrow:
+          config.longitude -= 0.001;
+          break;
+        case ConsoleKey.RightArrow:
+          config.longitude += 0.001;
+          break;
+        case ConsoleKey.Q:
+          cts.Cancel();
+          Environment.Exit(0);
+          break;
+        case ConsoleKey.F:
+          config.layout = config.layout == Config.Layout.Map ? Config.Layout.Search : Config.Layout.Map;
+          config.isSearching = !config.isSearching;
+          break;
+        case ConsoleKey.C:
+          config.layout = config.layout == Config.Layout.Map ? Config.Layout.Config : Config.Layout.Map;
+          config.isConfigOpen = !config.isConfigOpen;
+          break;
+        case ConsoleKey.H:
+          config.isSidebarOpen = !config.isSidebarOpen;
+          if (!config.isSidebarOpen)
+          {
+            config.resolution = ((short)((AnsiConsole.Profile.Width - 1) / 2), (short)AnsiConsole.Profile.Height);
+          }
+          else
+          {
+            config.resolution = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height);
+          }
+          rerender = true;
+          break;
+        default:
+          if (key.KeyChar == '-')
+          {
+            config.zoom--;
+          }
+          else if (key.KeyChar == '+')
+          {
+            config.zoom++;
+          }
+          break;
+      }
+    }
+
   }
 }
