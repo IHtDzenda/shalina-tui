@@ -23,8 +23,9 @@ public static class Renderer
     { "waterway", RenderVectorWater },
     { "wetland", RenderVectorGreenspace },
   };
-  static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PragueGeoData() };
-  static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidData() };
+  static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PidGeoData() };
+  static List<StopsInterface> cityStopsData = new List<StopsInterface> { new PidStopData() };
+  static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidLiveData() };
 
 
   static DrawingOptions drawingOptions = new DrawingOptions
@@ -35,8 +36,7 @@ public static class Renderer
     }
   };
 
-  static Image<Rgb24> image;
-  static List<CanvasText> texts = new List<CanvasText>();
+  static CanvasImageWithText image;
   private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
@@ -134,6 +134,22 @@ public static class Renderer
       }
     }
   }
+  // Render stop data (public transport, etc.) - city specific data(shows stops)
+  private static void RenderStopData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  {
+    foreach (var city in cityStopsData)
+    {
+      Stop[] data = city.getData(boundingBox, config).Result;
+      foreach (var stop in data)
+      {
+        PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
+        if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
+          continue;
+        image.AddText(new CanvasText((int)point.X + 1, (int)point.Y, stop.name, Color.Black));
+        image.Image[(int)point.X, (int)point.Y] = stop.color;
+      }
+    }
+  }
 
   // Render live data (public transport, etc.) - city specific data(shows vehicles)
   private static void RenderLiveData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
@@ -149,27 +165,32 @@ public static class Renderer
         PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
-        texts.Add(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
-        image[(int)point.X, (int)point.Y] = Color.White;
+        image.AddText(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
+        image.Image[(int)point.X, (int)point.Y] = Color.White;
       }
     }
   }
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
-      image = new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]);
+      image = new CanvasImageWithText(Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]));
     else
-      image.Mutate(ctx => ctx.Clear(config.colorScheme["land"]));
+    {
+      image.Image.Mutate(ctx => ctx.Clear(config.colorScheme["land"]));
+      image.ClearTexts();
+    }
 
-    texts.Clear();
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
     (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
     RenderVectorTiles(config, coord, boundingBox);
-    RenderGeoData(config, coord, boundingBox);
-    if (renderLive)
+    if(config.zoom > 9)
+      RenderGeoData(config, coord, boundingBox);
+    if (renderLive && config.zoom > 12)
       RenderLiveData(config, coord, boundingBox);
+    if(config.zoom > 12)
+      RenderStopData(config, coord, boundingBox);
 
-    return new CanvasImageWithText(image, texts.ToArray());
+    return image;
   }
 }
 
