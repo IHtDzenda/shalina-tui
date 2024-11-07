@@ -23,8 +23,9 @@ public static class Renderer
     { "waterway", RenderVectorWater },
     { "wetland", RenderVectorGreenspace },
   };
-  static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PragueGeoData() };
-  static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidData() };
+  static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PidGeoData() };
+  static List<StopsInterface> cityStopsData = new List<StopsInterface> { new PidStopData() };
+  static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidLiveData() };
 
 
   static DrawingOptions drawingOptions = new DrawingOptions
@@ -134,6 +135,22 @@ public static class Renderer
       }
     }
   }
+  // Render stop data (public transport, etc.) - city specific data(shows stops)
+  private static void RenderStopData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  {
+    foreach (var city in cityStopsData)
+    {
+      Stop[] data = city.getData(boundingBox, config).Result;
+      foreach (var stop in data)
+      {
+        PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
+        if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
+          continue;
+        texts.Add(new CanvasText((int)point.X + 1, (int)point.Y, stop.name, Color.Black));
+        image[(int)point.X, (int)point.Y] = stop.color;
+      }
+    }
+  }
 
   // Render live data (public transport, etc.) - city specific data(shows vehicles)
   private static void RenderLiveData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
@@ -166,6 +183,7 @@ public static class Renderer
     (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
     RenderVectorTiles(config, coord, boundingBox);
     RenderGeoData(config, coord, boundingBox);
+    RenderStopData(config, coord, boundingBox);
     if (renderLive)
       RenderLiveData(config, coord, boundingBox);
 

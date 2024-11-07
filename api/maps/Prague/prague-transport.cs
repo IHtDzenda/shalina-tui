@@ -47,7 +47,7 @@ public class PidTransportsResponse
   [JsonPropertyName("trips")]
   public Dictionary<string, PidTransport> Trips { get; set; }
 }
-public class PidData : TransportInterface
+public class PidLiveData : TransportInterface
 {
   private static TripState GetTripState(PidTransport transport)
   {
