@@ -4,6 +4,7 @@ using Core.Api.VectorTiles;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -59,18 +60,24 @@ public static class Renderer
   }
   private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
-    if (feature.GeometryType == GeomType.POLYGON)
+    switch (feature.GeometryType)
     {
-      RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 3, (ctx, points) => ctx.FillPolygon(drawingOptions, Brushes.Solid(color), points.ToArray()));
-    }
-    else if (feature.GeometryType == GeomType.LINESTRING)
-    {
-      RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 2, (ctx, points) => ctx.DrawLine(drawingOptions, Brushes.Solid(color), LINE_WIDTH, points.ToArray()));
-    }
-    else
-    {
-      throw new NotImplementedException($"Geometry type {feature.GeometryType} not implemented");
-    }
+      case GeomType.POLYGON:
+
+        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 3, (ctx, points) => ctx.FillPolygon(drawingOptions, Brushes.Solid(color), points.ToArray()));
+        break;
+      case GeomType.LINESTRING:
+        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 2, (ctx, points) => ctx.DrawLine(drawingOptions, Brushes.Solid(color), LINE_WIDTH, points.ToArray()));
+        break;
+
+      case GeomType.POINT:
+        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 1, (ctx, points) => ctx.Fill(drawingOptions,  Brushes.Solid(color), new EllipsePolygon(points[0], LINE_WIDTH)));
+            break;
+
+      default:
+        throw new NotImplementedException("Unknown geometry type");
+    };
+
   }
   private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, byte minPoints, Action<IImageProcessingContext, List<PointF>> operation)
   {
