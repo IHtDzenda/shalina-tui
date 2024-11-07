@@ -109,7 +109,7 @@ public class PidStopData : StopsInterface
 {
   public override async Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config)
   {
-    var url = "https://pid.cz/stopGroups.json";
+    var url = "https://data.pid.cz/stops/json/stops.json";
     string date = DateTime.Now.ToString("yyyy-MM-dd");
     string filePath = $"{Util.CheckForCacheDir()}/PIDStops_{date}.json";
     PidStopResponse pidStops;
