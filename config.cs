@@ -31,6 +31,12 @@ public struct Config
     { "trolleybus", Color.DarkBlue },
     { "other", Color.DarkBlue }
   };
+  public enum Layout
+  {
+    Map,
+    Search,
+    Config
+  }
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
@@ -47,6 +53,9 @@ public struct Config
   public bool isEditingConfig { get; set; } = false;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public string newConfigValue { get; set; } = "";
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public Layout layout { get; set; } = Layout.Map;
+
 
   public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, Dictionary<string, Rgb24> colorScheme)
   {
