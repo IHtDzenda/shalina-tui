@@ -18,10 +18,10 @@ public class TrafficTypeConvertor : JsonConverter<RouteType>
   {
     string value = reader.GetString()?.ToLowerInvariant();
 
-    if(value.StartsWith("metro", StringComparison.InvariantCultureIgnoreCase))
+    if (value.StartsWith("metro", StringComparison.InvariantCultureIgnoreCase))
     {
       return RouteType.Subway;
-      
+
     }
     return value switch
     {
@@ -124,26 +124,31 @@ public class PidStopResponse
 }
 public class PidStopData : StopsInterface
 {
-  public override async Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config)
+  public override async Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config, bool useCache)
   {
     var url = "https://data.pid.cz/stops/json/stops.json";
     string date = DateTime.Now.ToString("yyyy-MM-dd");
     string filePath = $"{Util.CheckForCacheDir()}/PIDStops_{date}.json";
     PidStopResponse pidStops;
-    using (HttpClient client = new HttpClient())
+    JsonSerializerOptions options = new JsonSerializerOptions
     {
-      HttpResponseMessage response = await client.GetAsync(url);
-      if (!response.IsSuccessStatusCode)
+      PropertyNameCaseInsensitive = true,
+      Converters = { new TrafficTypeConvertor() }
+    };
+    if (useCache && File.Exists(filePath))
+      pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(File.OpenRead(filePath), options);
+    else
+    {
+      using (HttpClient client = new HttpClient())
       {
-        throw new Exception("Request failed!");
+        HttpResponseMessage response = await client.GetAsync(url);
+        if (!response.IsSuccessStatusCode)
+        {
+          throw new Exception("Request failed!");
+        }
+        pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(await response.Content.ReadAsStreamAsync(), options);
+        File.WriteAllText(filePath, JsonSerializer.Serialize(pidStops, options));
       }
-      JsonSerializerOptions options = new JsonSerializerOptions
-      {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new TrafficTypeConvertor() }
-      };
-      pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(await response.Content.ReadAsStreamAsync(), options);
-      File.WriteAllText(filePath, JsonSerializer.Serialize(pidStops, options));
     }
     return pidStops.StopGroups.Select(sg =>
     {
