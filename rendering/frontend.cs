@@ -144,6 +144,7 @@ namespace Core.Rendering
 
     static void HandleKeyPress(ConsoleKeyInfo key)
     {
+ double step = 32 /(double)( 2 << config.zoom);
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
@@ -156,7 +157,7 @@ namespace Core.Rendering
             }
             break;
           }
-          config.latitude += 0.001;
+          config.latitude += step;
           break;
         case ConsoleKey.DownArrow:
           if (config.isConfigOpen)
@@ -168,13 +169,13 @@ namespace Core.Rendering
             }
             break;
           }
-          config.latitude -= 0.001;
+          config.latitude -= step;
           break;
         case ConsoleKey.LeftArrow:
-          config.longitude -= 0.001;
+          config.longitude -= step;
           break;
         case ConsoleKey.RightArrow:
-          config.longitude += 0.001;
+          config.longitude += step;
           break;
         case ConsoleKey.Q:
           cts.Cancel();
