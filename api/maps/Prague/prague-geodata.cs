@@ -110,12 +110,12 @@ public class PragueGeoData : GeoDataInterface
   private static DateTime lastCacheUpdate = DateTime.MinValue;
   static Dictionary<string, RouteType> routeTypeMap = new Dictionary<string, RouteType>
     {
-      { "3", RouteType.bus },
-      { "11", RouteType.trolleybus },
-      { "7", RouteType.ferry },
-      { "1", RouteType.subway },
-      { "2", RouteType.rail },
-      { "0", RouteType.tram },
+      { "3", RouteType.Bus },
+      { "11", RouteType.Trolleybus },
+      { "7", RouteType.Ferry },
+      { "1", RouteType.Subway },
+      { "2", RouteType.Rail },
+      { "0", RouteType.Tram },
     };
   public async Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
   {

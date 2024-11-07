@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -7,13 +6,13 @@ namespace Core.Api.Maps
 
   public enum RouteType
   {
-    bus,
-    tram,
-    subway,
-    rail,
-    ferry,
-    trolleybus,
-    other
+    Bus,
+    Tram,
+    Subway,
+    Rail,
+    Ferry,
+    Trolleybus,
+    Other
   }
   public static class LatLngExtensions
   {
