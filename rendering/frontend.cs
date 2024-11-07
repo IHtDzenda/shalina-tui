@@ -233,7 +233,8 @@ namespace Core.Rendering
         default:
           if (config.isSearching)
           {
-            config.query = config.query + key.KeyChar.ToString();
+            query = query + key.KeyChar.ToString();
+            config.query = new UserQuery(query);
           }
           else if (config.isEditingConfig)
           {
