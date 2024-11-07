@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Core
 {
-  public class Util
+  public static class Util
   {
     public static bool IsGzip(byte[] data)
     {
@@ -46,7 +46,7 @@ namespace Core
       {
         cacheDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\cache\" + pathSuffix;
       }
-      else if (os == OSPlatform.Linux||os==OSPlatform.OSX)
+      else if (os == OSPlatform.Linux || os == OSPlatform.OSX)
       {
         string homepath = Environment.GetEnvironmentVariable("HOME")!;
         cacheDir = homepath + @"/.cache/shalina/" + pathSuffix;
@@ -85,5 +85,7 @@ namespace Core
         byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber)
       );
     }
+    public static string ToHex(this Rgb24 color)
+    => $"{color.R:X2}{color.G:X2}{color.B:X2}";
   }
 }
