@@ -173,7 +173,7 @@ public static class Renderer
   public static CanvasImageWithText RenderMap(Config config, bool renderLive)
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
-      image = new CanvasImageWithText(Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]));
+      image = new CanvasImageWithText(new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]));
     else
     {
       image.Image.Mutate(ctx => ctx.Clear(config.colorScheme["land"]));
