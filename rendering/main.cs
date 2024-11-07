@@ -50,13 +50,13 @@ public static class Renderer
         }
       }
       catch { }
-      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme["water"], layer.Extent, new DrawingOptions());
+      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme["water"], layer.Extent, drawingOptions);
     }
   }
   private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
-      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme["grass"], layer.Extent, new DrawingOptions());
+      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme["grass"], layer.Extent, drawingOptions);
   }
   private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
@@ -117,8 +117,14 @@ public static class Renderer
   {
     foreach (var city in cityGeoData)
     {
-      GeoData[] data = city.getData(boundingBox, true, config).Result;
+      var data = city.getData(boundingBox, true, config).Result;
+      List<GeoData> geoDataList = new List<GeoData>();
       foreach (var geoData in data)
+      {
+        RouteType type = geoData.Key;
+        geoDataList.AddRange(geoData.Value.Where(x => config.query.MatchSingle((type, x))).Select(x => x.Value));
+      }
+      foreach (var geoData in geoDataList)
       {
         if (geoData.geometry == null)
         {
@@ -140,7 +146,7 @@ public static class Renderer
     foreach (var city in cityStopsData)
     {
       Stop[] data = city.getData(boundingBox, config).Result;
-      foreach (var stop in data)
+      foreach (var stop in data.Where(x => config.query.MatchSingle(x)))
       {
         PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
@@ -156,8 +162,14 @@ public static class Renderer
   {
     foreach (var city in cityLiveData)
     {
-      Transport[] data = city.getData(boundingBox, config).Result;
+      var data = city.getData(boundingBox, config).Result;
+      List<Transport> transports = new List<Transport>();
       foreach (var transport in data)
+      {
+        RouteType type = transport.Key;
+        transports.AddRange(transport.Value.Where(x => config.query.MatchSingle((type, x))).Select(x => x.Value));
+      }
+      foreach (var transport in transports)
       {
         if (transport.state == TripState.Inactive || transport.state == TripState.NotPublic) //TODO: Configurable
           continue;

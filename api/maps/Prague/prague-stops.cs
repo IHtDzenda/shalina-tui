@@ -155,6 +155,7 @@ public class PidStopData : StopsInterface
         municipality = sg.Municipality,
         mainRouteType = sg.MainTrafficType,
         color = Color.Black,
+        lines = sg.Stops.SelectMany(s => s.Lines.Select(l => (l.Type, l.Name))).ToArray()
       };
     }).ToArray();
   }

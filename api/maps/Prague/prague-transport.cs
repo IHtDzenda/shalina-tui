@@ -61,7 +61,16 @@ public class PidLiveData : TransportInterface
       _ => TripState.Unknown
     };
   }
-  public override async Task<Transport[]> getTransports((LatLng min, LatLng max) boundingBox, Config config)
+  static Dictionary<int, RouteType> routeTypeMap = new Dictionary<int, RouteType>
+    {
+      { 3, RouteType.Bus },
+      { 11, RouteType.Trolleybus },
+      { 7, RouteType.Ferry },
+      { 1, RouteType.Subway },
+      { 2, RouteType.Rail },
+      { 0, RouteType.Tram },
+    };
+  public override async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports((LatLng min, LatLng max) boundingBox, Config config)
   {
     string url = "https://mapa.pid.cz/getData.php";
     string jsonData = "{\"action\":\"getData\",\"bounds\":[" + boundingBox.min.Lng + "," + boundingBox.min.Lat + "," + boundingBox.max.Lng + "," + boundingBox.max.Lat + "]}";
@@ -82,22 +91,29 @@ public class PidLiveData : TransportInterface
       PidTransportsResponse jsonResponse = JsonSerializer.Deserialize<PidTransportsResponse>(responseBody, options);
 
       if (jsonResponse == null || jsonResponse.Trips.Count == 0)
-        return Array.Empty<Transport>();
+        return new Dictionary<RouteType, Dictionary<string, Transport>>();
 
       int count = jsonResponse.Trips.Count;
-      Transport[] transports = new Transport[count];
-      for(int tripIndex = 0; tripIndex < count; tripIndex++)
+      Dictionary<RouteType, Dictionary<string, Transport>> transports = new Dictionary<RouteType, Dictionary<string, Transport>>(Enum.GetValues(typeof(RouteType)).Length);
+      foreach (var type in Enum.GetValues(typeof(RouteType)).Cast<RouteType>())
+      {
+        transports[type] = new Dictionary<string, Transport>(jsonResponse.Trips.Where(// Pre-allocate dictionary for better performance
+              trip => routeTypeMap.GetValueOrDefault(trip.Value.RouteType, RouteType.Other) == type).Count());
+      }
+      for (int tripIndex = 0; tripIndex < count; tripIndex++)
       {
         PidTransport transport = jsonResponse.Trips.ElementAt(tripIndex).Value;
-        transports[tripIndex] = new Transport
+        RouteType routeType = routeTypeMap.GetValueOrDefault(transport.RouteType, RouteType.Other);
+        transports[routeType].Add(transport.TripId, new Transport
         {
           lat = transport.Latitude,
           lon = transport.Longitude,
           lineName = transport.Route,
           delay = transport.Delay,
           tripId = transport.TripId,
-          state = GetTripState(transport)
-        };
+          state = GetTripState(transport),
+          routeType = routeType
+        });
       }
       return transports;
     }

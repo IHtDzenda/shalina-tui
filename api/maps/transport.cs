@@ -20,10 +20,11 @@ public class Transport
   public int delay { get; set; }
   public string? tripId { get; set; }
   public TripState state { get; set; }
+  public RouteType routeType { get; set; }
 }
 public abstract class TransportInterface
 {
-  private Transport[] transportsCache;
+  private Dictionary<RouteType, Dictionary<string, Transport>> transportsCache;
   private (LatLng min, LatLng max) boundingBox;
 
   private void CacheThread(Config config)
@@ -43,9 +44,9 @@ public abstract class TransportInterface
     }
   }
 
-  public abstract Task<Transport[]> getTransports((LatLng min, LatLng max) boundingBox, Config config);
+  public abstract Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports((LatLng min, LatLng max) boundingBox, Config config);
 
-  public async Task<Transport[]> getData((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true)
+  public async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getData((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true)
   {
     if (!useCache)
       return await getTransports(boundingBox, config);

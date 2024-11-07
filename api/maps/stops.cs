@@ -12,6 +12,7 @@ public class Stop
   public string municipality { get; set; }
   public RouteType mainRouteType { get; set; }
   public RouteType[] routeTypes { get; set; }
+  public (RouteType type, string name)[] lines { get; set; }
   public Color color { get; set; }
 }
 

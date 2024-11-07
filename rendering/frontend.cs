@@ -1,3 +1,4 @@
+using Core.Rendering.Search;
 using SixLabors.ImageSharp.PixelFormats;
 using Spectre.Console;
 using System.Diagnostics;
@@ -9,6 +10,7 @@ namespace Core.Rendering
   public static class Frontend
   {
     static bool rerender = false;
+    static string query = "";
     static CancellationTokenSource cts = new CancellationTokenSource();
     static Config config = Config.Load();
 
@@ -26,7 +28,7 @@ namespace Core.Rendering
     }
     public static string RenderSearch()
     {
-      string search = !config.isSearching && config.query.Length == 0 ? "[gray](press F to focus search)[/]" : config.isSearching ? $"[red]{config.query}[/]" : $"[gray]{config.query}";
+      string search = !config.isSearching && query.Length == 0 ? "[gray](press F to focus search)[/]" : config.isSearching ? $"[red]{query}[/]" : $"[gray]{query}";
       return $"Search and filter connections \n-> {search}";
     }
     public static string RenderSidebar(Config config)
@@ -156,7 +158,7 @@ namespace Core.Rendering
     }
     private static void HandleSidebarKeyPress(ConsoleKeyInfo key)
     {
- double step = 32 /(double)( 2 << config.zoom);
+      double step = 32 / (double)(2 << config.zoom);
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
@@ -213,14 +215,15 @@ namespace Core.Rendering
           else if (config.isSearching)
           {
             config.isSearching = false;
-            config.query = "";
+            query = "";
           }
           config.layout = Config.Layout.Map;
           break;
         case ConsoleKey.Backspace:
-          if (config.query.Length > 0 && config.isSearching)
+          if (query.Length > 0 && config.isSearching)
           {
-            config.query = config.query.Substring(0, config.query.Length - 1);
+            query = query.Substring(0, query.Length - 1);
+            config.query = new UserQuery(query);
           }
           else if (config.isEditingConfig && config.newConfigValue.Length > 0)
           {
@@ -230,7 +233,8 @@ namespace Core.Rendering
         default:
           if (config.isSearching)
           {
-            config.query = config.query + key.KeyChar.ToString();
+            query = query + key.KeyChar.ToString();
+            config.query = new UserQuery(query);
           }
           else if (config.isEditingConfig)
           {
@@ -273,6 +277,8 @@ namespace Core.Rendering
           config.isSidebarOpen = !config.isSidebarOpen;
           if (!config.isSidebarOpen)
           {
+            query = query + key.KeyChar.ToString();
+            config.query = new UserQuery(query);
             config.resolution = ((short)((AnsiConsole.Profile.Width - 1) / 2), (short)AnsiConsole.Profile.Height);
           }
           else
