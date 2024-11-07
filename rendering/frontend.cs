@@ -156,6 +156,7 @@ namespace Core.Rendering
     }
     private static void HandleSidebarKeyPress(ConsoleKeyInfo key)
     {
+ double step = 32 /(double)( 2 << config.zoom);
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
@@ -171,6 +172,18 @@ namespace Core.Rendering
           {
             config.cursorConfigIndex = 0;
           }
+          break;
+        case ConsoleKey.Q:
+          cts.Cancel();
+          Environment.Exit(0);
+          break;
+        case ConsoleKey.F:
+          if (config.isEditingConfig || !config.isSidebarOpen)
+            break;
+          config.isSearching = !config.isSearching;
+          break;
+        case ConsoleKey.C:
+          config.isConfigOpen = !config.isConfigOpen;
           break;
         case ConsoleKey.Enter:
           if (config.isConfigOpen && config.isEditingConfig)
@@ -228,19 +241,21 @@ namespace Core.Rendering
     }
     static void HandleMapKeyPress(ConsoleKeyInfo key)
     {
+       double step = 32 /(double)( 2 << config.zoom);
+
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
-          config.latitude += 0.001;
+          config.latitude += step;
           break;
         case ConsoleKey.DownArrow:
-          config.latitude -= 0.001;
+          config.latitude -= step;
           break;
         case ConsoleKey.LeftArrow:
-          config.longitude -= 0.001;
+          config.longitude -= step;
           break;
         case ConsoleKey.RightArrow:
-          config.longitude += 0.001;
+          config.longitude += step;
           break;
         case ConsoleKey.Q:
           cts.Cancel();
