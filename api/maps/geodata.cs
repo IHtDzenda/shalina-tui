@@ -16,6 +16,7 @@ public enum RouteType
   Trolleybus,
   Other
 }
+
 public class RouteTypeConverter : JsonConverter<RouteType>
 {
   public override RouteType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -40,6 +41,7 @@ public class RouteTypeConverter : JsonConverter<RouteType>
     writer.WriteStringValue(value.ToString());
   }
 }
+
 public static class LatLngExtensions
 {
   public static LatLng Add(this LatLng a, LatLng b)
@@ -71,20 +73,18 @@ public static class LatLngExtensions
     return a.Lat < b.Lat && a.Lng < b.Lng;
   }
 }
+
 public class GeoData
 {
   public List<List<LatLng>> geometry { get; set; }
   public string routeId { get; set; }
-  public string routeDisplayNumber { get; set; }
   public string routeNameLong { get; set; }
   public Rgb24 routeColor { get; set; }
   public string routeUrl { get; set; }
   public bool isSubsitute { get; set; }
   public bool isNightRoute { get; set; }
-  public RouteType routeType { get; set; }
 }
 public interface GeoDataInterface
 {
-
-  public abstract Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config);
+  public abstract Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config);
 }

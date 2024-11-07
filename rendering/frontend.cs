@@ -1,3 +1,4 @@
+using Core.Rendering.Search;
 using SixLabors.ImageSharp.PixelFormats;
 using Spectre.Console;
 using System.Diagnostics;
@@ -9,6 +10,7 @@ namespace Core.Rendering
   public static class Frontend
   {
     static bool rerender = false;
+    static string query = "";
     static CancellationTokenSource cts = new CancellationTokenSource();
     static Config config = Config.Load();
 
@@ -26,7 +28,7 @@ namespace Core.Rendering
     }
     public static string RenderSearch()
     {
-      string search = !config.isSearching && config.query.Length == 0 ? "[gray]press F to toggle search[/]" : config.isSearching ? $"[red]{config.query}[/]" : $"[gray]{config.query}";
+      string search = !config.isSearching && query.Length == 0 ? "[gray]press F to toggle search[/]" : config.isSearching ? $"[red]{query}[/]" : $"[gray]{query}";
       return $"Search for a location \n-> {search}";
     }
     public static string RenderSidebar(Config config)
@@ -144,7 +146,7 @@ namespace Core.Rendering
 
     static void HandleKeyPress(ConsoleKeyInfo key)
     {
- double step = 32 /(double)( 2 << config.zoom);
+      double step = 32 / (double)(2 << config.zoom);
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
@@ -228,13 +230,14 @@ namespace Core.Rendering
           else if (config.isSearching)
           {
             config.isSearching = false;
-            config.query = "";
+            query = "";
           }
           break;
         case ConsoleKey.Backspace:
-          if (config.query.Length > 0 && config.isSearching)
+          if (query.Length > 0 && config.isSearching)
           {
-            config.query = config.query.Substring(0, config.query.Length - 1);
+            query = query.Substring(0, query.Length - 1);
+            config.query = new UserQuery(query);
           }
           else if (config.isEditingConfig && config.newConfigValue.Length > 0)
           {
@@ -252,7 +255,8 @@ namespace Core.Rendering
           }
           else if (config.isSearching)
           {
-            config.query = config.query + key.KeyChar.ToString();
+            query = query + key.KeyChar.ToString();
+            config.query = new UserQuery(query);
           }
           else if (config.isEditingConfig)
           {

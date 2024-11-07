@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Rendering.Search;
 using SixLabors.ImageSharp.PixelFormats;
 using Spectre.Console;
 using Color = SixLabors.ImageSharp.Color;
@@ -34,7 +35,7 @@ public struct Config
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public string query { get; set; } = "";
+  public UserQuery query { get; set; } = new UserQuery();
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public bool isSearching { get; set; } = false;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]

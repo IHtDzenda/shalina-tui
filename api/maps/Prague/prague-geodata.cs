@@ -106,7 +106,7 @@ public class CoordinatesConverter : JsonConverter<List<List<LatLng>>>
 
 public class PidGeoData : GeoDataInterface
 {
-  private static GeoData[] geoDataCache;
+  private static Dictionary<RouteType, Dictionary<string, GeoData>> geoDataCache;
   private static DateTime lastCacheUpdate = DateTime.MinValue;
   static Dictionary<string, RouteType> routeTypeMap = new Dictionary<string, RouteType>
     {
@@ -117,9 +117,9 @@ public class PidGeoData : GeoDataInterface
       { "2", RouteType.Rail },
       { "0", RouteType.Tram },
     };
-  public async Task<GeoData[]> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
+  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
   {
-    if (geoDataCache != null && useCache && geoDataCache.Length > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
+    if (geoDataCache != null && useCache && geoDataCache.Count > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {
       return geoDataCache;
     }
@@ -154,25 +154,27 @@ public class PidGeoData : GeoDataInterface
     int count = jsonResponse.features.Count;
     if(config.hideRegional)
       count = jsonResponse.features.Where(f => f.properties.is_regional != "1").Count();
-    GeoData[] geoData = new GeoData[count];
 
-    int geoDataIndex = 0;
+    Dictionary<RouteType, Dictionary<string, GeoData>> geoData = new Dictionary<RouteType, Dictionary<string, GeoData>>(Enum.GetValues(typeof(RouteType)).Length);
+    foreach(var type in Enum.GetValues(typeof(RouteType)).Cast<RouteType>()){
+      geoData[type] = new Dictionary<string, GeoData>(jsonResponse.features.Where(// Pre-allocate dictionary for better performance
+            feature => routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other) == type).Count());
+        }
+
     foreach (var feature in jsonResponse.features)
     {
       if (config.hideRegional && feature.properties.is_regional == "1") // Skip regional routes if config says to not show them
         continue;
 
-      geoData[geoDataIndex++] = new GeoData
+      geoData[routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other)][feature.properties.route_short_name] = new GeoData
       {
         geometry = feature.geometry.coordinates,
         routeId = feature.properties.route_id,
-        routeDisplayNumber = feature.properties.route_short_name,
         routeNameLong = feature.properties.route_long_name,
         routeColor = Util.ParseHexColor(feature.properties.route_color),
         routeUrl = feature.properties.route_url,
         isSubsitute = feature.properties.is_substitute_transport == "1",
-        isNightRoute = feature.properties.is_night == "1",
-        routeType = routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other)
+        isNightRoute = feature.properties.is_night == "1"
       };
     }
     geoDataCache = geoData;
