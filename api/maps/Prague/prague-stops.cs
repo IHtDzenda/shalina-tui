@@ -1,0 +1,150 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Mapbox.VectorTile.Geometry;
+
+namespace Core.Api.Maps.Prague;
+
+public enum WheelChairAccess
+{
+  notPossible,
+  possible,
+  unknown
+}
+public enum TrafficType
+{
+  bus,
+  ferry,
+  metroA,
+  metroB,
+  metroC,
+  train,
+  tram,
+  trolleybus,
+  undefined
+}
+public class PidLine
+{
+  [JsonPropertyName("id")]
+  public int Id { get; set; }
+  [JsonPropertyName("name")]
+  public string Name { get; set; }
+  [JsonPropertyName("type")]
+  public TrafficType Type { get; set; }
+  [JsonPropertyName("direction")]
+  public string Direction { get; set; }
+  [JsonPropertyName("direction2")]
+  public string Direction2 { get; set; }
+}
+public class PidStop
+{
+  [JsonPropertyName("id")]
+  public string Id { get; set; }
+  [JsonPropertyName("platform")]
+  public string Platform { get; set; }
+  [JsonPropertyName("altIdosName")]
+  public string AltIdosName { get; set; }
+  [JsonPropertyName("lat")]
+  public double Lat { get; set; }
+  [JsonPropertyName("lon")]
+  public double Lon { get; set; }
+  [JsonPropertyName("jtskX")]
+  public double JtskX { get; set; }
+  [JsonPropertyName("jtskY")]
+  public double JtskY { get; set; }
+  [JsonPropertyName("zone")]
+  public string Zone { get; set; }
+  [JsonPropertyName("mainTrafficType")]
+  public TrafficType MainTrafficType { get; set; }
+  [JsonPropertyName("wheelchairAccess")]
+  public WheelChairAccess WheelchairAccess { get; set; }
+  [JsonPropertyName("gtfsIds")]
+  public List<string> GtfsIds { get; set; }
+  [JsonPropertyName("lines")]
+  public List<PidLine> Lines { get; set; }
+}
+
+public class PidStopGroup
+{
+  [JsonPropertyName("name")]
+  public string Name { get; set; }
+  [JsonPropertyName("districtCode")]
+  public string DistrictCode { get; set; }
+  [JsonPropertyName("idosCategory")]
+  public int IdosCategory { get; set; }
+  [JsonPropertyName("idosName")]
+  public string IdosName { get; set; }
+  [JsonPropertyName("fullName")]
+  public string FullName { get; set; }
+  [JsonPropertyName("uniqueName")]
+  public string UniqueName { get; set; }
+  [JsonPropertyName("node")]
+  public int Node { get; set; }
+  [JsonPropertyName("cis")]
+  public int Cis { get; set; }
+  [JsonPropertyName("avgLat")]
+  public double AvgLat { get; set; }
+  [JsonPropertyName("avgLon")]
+  public double AvgLon { get; set; }
+  [JsonPropertyName("avgJtskX")]
+  public double AvgJtskX { get; set; }
+  [JsonPropertyName("avgJtskY")]
+  public double AvgJtskY { get; set; }
+  [JsonPropertyName("municipality")]
+  public string Municipality { get; set; }
+  [JsonPropertyName("mainTrafficType")]
+  public TrafficType MainTrafficType { get; set; }
+  [JsonPropertyName("stops")]
+  public List<PidStop> Stops { get; set; }
+}
+public class PidStopResponse
+{
+  [JsonPropertyName("generatedAt")]
+  public DateTime GeneratedAt { get; set; }
+  [JsonPropertyName("dataFormatVersion")]
+  public string DataFormatVersion { get; set; }
+  [JsonPropertyName("stopGroups")]
+  public List<PidStopGroup> StopGroups { get; set; }
+}
+public class PidStopData : StopsInterface
+{
+  public override async Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config)
+  {
+    var url = "https://pid.cz/stopGroups.json";
+    string date = DateTime.Now.ToString("yyyy-MM-dd");
+    string filePath = $"{Util.CheckForCacheDir()}/PIDStops_{date}.json";
+    PidStopResponse pidStops;
+    using (HttpClient client = new HttpClient())
+    {
+      HttpResponseMessage response = await client.GetAsync(url);
+      if (!response.IsSuccessStatusCode)
+      {
+        throw new Exception("Request failed!");
+      }
+      pidStops = await JsonSerializer.DeserializeAsync<PidStopResponse>(await response.Content.ReadAsStreamAsync());
+      File.WriteAllText(filePath, JsonSerializer.Serialize(pidStops));
+    }
+    return pidStops.StopGroups.Select(sg =>
+    {
+      return new Stop
+      {
+        name = sg.Name,
+        id = sg.UniqueName,
+        location = new LatLng { Lat = sg.AvgLat, Lng = sg.AvgLon },
+        municipality = sg.Municipality,
+        mainRouteType = sg.MainTrafficType switch
+        {
+          TrafficType.bus => RouteType.Bus,
+          TrafficType.ferry => RouteType.Ferry,
+          TrafficType.metroA => RouteType.Subway,
+          TrafficType.metroB => RouteType.Subway,
+          TrafficType.metroC => RouteType.Subway,
+          TrafficType.train => RouteType.Rail,
+          TrafficType.tram => RouteType.Tram,
+          TrafficType.trolleybus => RouteType.Trolleybus,
+          _ => RouteType.Other
+        }
+      };
+    }).ToArray();
+  }
+}
+
