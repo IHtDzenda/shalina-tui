@@ -75,9 +75,9 @@ public static class Conversion
 
     LatLng diff = northeast.Subtract(southwest);
     if(imageSize.width > imageSize.height)
-      diff.Lat = diff.Lat * (double)imageSize.width / imageSize.height;
+      diff.Lat = diff.Lat / ((double)imageSize.width / imageSize.height);
     else
-      diff.Lng = diff.Lng * (double)imageSize.height / imageSize.width;
+      diff.Lng = diff.Lng / ((double)imageSize.height / imageSize.width);
 
     // Return the minimum and maximum LatLng
     return (center.Subtract(diff.Divide(2)), center.Add(diff.Divide(2)));
