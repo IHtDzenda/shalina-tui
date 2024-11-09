@@ -193,7 +193,7 @@ public static class Renderer
     }
 
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
-    (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom);
+    (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom, (image.Width, image.Height));
     RenderVectorTiles(config, coord, boundingBox);
     if(config.zoom > 9)
       RenderGeoData(config, coord, boundingBox);
