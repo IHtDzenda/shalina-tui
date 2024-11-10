@@ -166,11 +166,13 @@ public class PidGeoData : GeoDataInterface
       if (config.hideRegional && feature.properties.is_regional == "1") // Skip regional routes if config says to not show them
         continue;
 
+      if(feature.properties.route_short_name == null) // ????? just in case
+        continue;
       geoData[routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other)][feature.properties.route_short_name] = new GeoData
       {
         geometry = feature.geometry.coordinates,
         routeId = feature.properties.route_id,
-        routeNameLong = feature.properties.route_long_name,
+        routeNameLong = feature.properties.route_long_name ?? feature.properties.route_short_name,
         routeColor = Util.ParseHexColor(feature.properties.route_color),
         routeUrl = feature.properties.route_url,
         isSubsitute = feature.properties.is_substitute_transport == "1",
