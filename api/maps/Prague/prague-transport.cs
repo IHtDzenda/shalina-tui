@@ -104,7 +104,7 @@ public class PidLiveData : TransportInterface
       {
         PidTransport transport = jsonResponse.Trips.ElementAt(tripIndex).Value;
         RouteType routeType = routeTypeMap.GetValueOrDefault(transport.RouteType, RouteType.Other);
-        transports[routeType].Add(transport.TripId, new Transport
+        transports[routeType][transport.TripId] =  new Transport
         {
           lat = transport.Latitude,
           lon = transport.Longitude,
@@ -113,7 +113,7 @@ public class PidLiveData : TransportInterface
           tripId = transport.TripId,
           state = GetTripState(transport),
           routeType = routeType
-        });
+        };
       }
       return transports;
     }
