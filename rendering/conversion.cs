@@ -64,7 +64,7 @@ public static class Conversion
       (centerX + x, centerY + y)
     };
   }
-  public static (LatLng min, LatLng max) GetBoundingBox(LatLng center, byte zoom)
+  public static (LatLng min, LatLng max) GetBoundingBox(LatLng center, byte zoom, (int width, int height) imageSize)
   {
     // Get the tile coordinates for the center point
     (int tileX, int tileY) = GetTileFromGPS(center, zoom);
@@ -74,6 +74,11 @@ public static class Conversion
     LatLng northeast = ConvertTileToGPS(tileX + 1, tileY, zoom); // Top-right corner
 
     LatLng diff = northeast.Subtract(southwest);
+    if(imageSize.width > imageSize.height)
+      diff.Lat = diff.Lat / ((double)imageSize.width / imageSize.height);
+    else
+      diff.Lng = diff.Lng / ((double)imageSize.height / imageSize.width);
+
     // Return the minimum and maximum LatLng
     return (center.Subtract(diff.Divide(2)), center.Add(diff.Divide(2)));
   }
