@@ -22,7 +22,7 @@ public abstract class StopsInterface
   private (LatLng min, LatLng max) boundingBox;
   private DateTime lastUpdated = DateTime.MinValue;
 
-  public abstract Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config);
+  public abstract Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true);
 
   public async Task<Stop[]> getData((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true)
   {
