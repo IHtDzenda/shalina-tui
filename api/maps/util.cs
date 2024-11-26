@@ -64,6 +64,8 @@ namespace Core
       string configPath = "";
       if (os == OSPlatform.Windows)
       {
+        if(!Directory.Exists(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina"))
+          Directory.CreateDirectory(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina");
         configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + @"\shalina\config.json";
       }
       else if (os == OSPlatform.Linux || os == OSPlatform.OSX)
