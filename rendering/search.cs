@@ -4,25 +4,15 @@ using Core.Api.Maps;
 namespace Core.Rendering.Search;
 public class UserQuery
 {
-  List<string> values = new List<string>();
-  List<bool> opposite = new List<bool>();
+  List<(bool inversion, string value)> values = new List<(bool,string)>();
   private static readonly char[] separators = { ' ', '\t', ',', ';' };
-  UserQuery(List<string> values, List<bool> inversion)
+  UserQuery(List<(bool, string)> values)
   {
     if (values == null)
     {
       throw new ArgumentNullException(nameof(values));
     }
-    if (inversion == null)
-    {
-      throw new ArgumentNullException(nameof(inversion));
-    }
-    if (values.Count != inversion.Count)
-    {
-      throw new ArgumentException("values and inversion must have the same length");
-    }
     this.values = values;
-    this.opposite = inversion;
   }
   // Parse the input string
   public UserQuery(string value)
@@ -48,8 +38,7 @@ public class UserQuery
       {
         if (isLast && !isSeparator)
           searchString += value[i];
-        values.Add(searchString);
-        opposite.Add(inverted);
+        values.Add((inverted,searchString));
         searchString = "";
         inverted = false;
         continue;
@@ -67,14 +56,14 @@ public class UserQuery
     bool isMatch = this.values.Count == 0;
     for (int i = 0; i < values.Count; i++)
     {
-      if (values[i].Equals("all", StringComparison.InvariantCultureIgnoreCase))
+      if (values[i].value.Equals("all", StringComparison.InvariantCultureIgnoreCase))
         isMatch = true;
       for (int j = 0; j < matchValues.Length - partialMatchStartIdx; j++)
       {
-        if (matchValues[j].Equals(values[i], StringComparison.InvariantCultureIgnoreCase))
+        if (matchValues[j].Equals(values[i].value, StringComparison.InvariantCultureIgnoreCase))
         {
           isMatch = true;
-          if (opposite[i])
+          if (values[i].inversion)
             return false;
         }
       }
@@ -82,10 +71,10 @@ public class UserQuery
       {
         if(matchValues[j].Length > 2)
           continue;
-        if (CultureInfo.InvariantCulture.CompareInfo.IndexOf(matchValues[j], values[i], CompareOptions.IgnoreCase) >= 0)
+        if (CultureInfo.InvariantCulture.CompareInfo.IndexOf(matchValues[j], values[i].value, CompareOptions.IgnoreCase) >= 0)
         {
           isMatch = true;
-          if (opposite[i])
+          if (values[i].inversion)
             return false;
           continue;
         }
