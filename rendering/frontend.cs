@@ -10,32 +10,41 @@ namespace Core.Rendering
   public static class Frontend
   {
     static bool rerender = false;
-    static string query = "";
     static CancellationTokenSource cts = new CancellationTokenSource();
     static Config config = Config.Load();
 
     public static string RenderTooltip()
     {
-      if (config.isConfigOpen)
-      {
-        return EditConfig();
-      }
-      else if (config.isSidebarOpen)
+      if (config.layout == Config.Layout.Search)
       {
         return RenderSearch();
+      }
+      else if (config.layout == Config.Layout.Config)
+      {
+        return RenderConfig();
       }
       return "";
     }
     public static string RenderSearch()
     {
-      string search = !config.isSearching && query.Length == 0 ? "[gray](press F to focus search)[/]" : config.isSearching ? $"[red]{query}[/]" : $"[gray]{query}";
+      string search = config.userQuery + " ";
+      Console.Error.WriteLine(config.cursorConfigIndex);
+      if (config.userQuery.Length == 0 && !config.sidebarSelected)
+        search = "[gray](press tab to focus search)[/]";
+      else if (config.sidebarSelected)
+      {
+        search = "[red]" + search.Substring(0, config.cursorConfigIndex) + "[red on white]" + search[config.cursorConfigIndex] + "[/]" + search.Substring(config.cursorConfigIndex + 1) + "[/]";
+      }
+      else
+        search = $"[gray]{config.userQuery}[/]";
+
       return $"Search and filter connections \n-> {search}";
     }
     public static string RenderSidebar(Config config)
     {
-      return "Move using arrow keys [red]↑↓ ←→[/] zoom using [red]+/-[/] keys\nTo search press [red]F[/], For settings press [red]C[/]\nTo toggle panel press [red]H[/]  To exit press [red]Q[/]";
+      return "Move using arrow keys [red]↑↓ ←→[/] zoom using [red]+/-[/] keys\nTo toggle sidebar selection press [red]TAB[/]\nPress [red]ESC[/] to deselect current menu\nTo toggle panel press [red]H[/] To exit press [red]Q[/]";
     }
-    public static string EditConfig()
+    public static string RenderConfig()
     {
       int index = config.cursorConfigIndex;
       string[] cfg = new string[config.colorScheme.Count];
@@ -46,7 +55,7 @@ namespace Core.Rendering
         if (i == index)
         {
           string cursor = "█";
-          string text = config.isEditingConfig ? $"[red]{config.newConfigValue}[/]" + cursor : $"#{hexColor}";
+          string text = config.sidebarSelected ? $"[red]{config.newConfigValue}[/]" + cursor : $"#{hexColor}";
           cfg[i] = $"[red]{config.colorScheme.ElementAt(i).Key}[/] - {text} - {colorDot}";
         }
         else
@@ -68,17 +77,21 @@ namespace Core.Rendering
         if (Console.KeyAvailable)
         {
           ConsoleKeyInfo key = Console.ReadKey(intercept: true);
-          switch (config.layout)
+          if (config.sidebarSelected)
           {
-            case Config.Layout.Map:
-              HandleMapKeyPress(key);
-              break;
-            case Config.Layout.Config:
-              HandleSidebarKeyPress(key);
-              break;
-            case Config.Layout.Search:
-              HandleSidebarKeyPress(key);
-              break;
+            switch (config.layout)
+            {
+              case Config.Layout.Config:
+                HandleConfigKeyPress(key);
+                break;
+              case Config.Layout.Search:
+                HandleSearchKeyPress(key);
+                break;
+            }
+          }
+          else
+          {
+            HandleMapKeyPress(key);
           }
           rerender = true; // Trigger immediate rerender
         }
@@ -89,76 +102,80 @@ namespace Core.Rendering
 
     static async Task RenderLoop(CancellationToken token)
     {
-      await AnsiConsole.Live(new Layout("Root")
-          .SplitColumns(
-              new Layout("Left"),
-              new Layout("Right")
-              .SplitRows(
-                  new Layout("Top"),
-                  new Layout("Bottom").Size(2))
-          )).StartAsync(async ctx =>
+      try
       {
-        while (!token.IsCancellationRequested)
+        await AnsiConsole.Live(new Layout("Root")
+            .SplitColumns(
+                new Layout("Left"),
+                new Layout("Right")
+                .SplitRows(
+                    new Layout("Top"),
+                    new Layout("Bottom").Size(2))
+            )).StartAsync(async ctx =>
         {
-          Stopwatch stopwatch = new Stopwatch();
-          stopwatch.Start();
-          bool isSidebarSelected = config.isSearching || config.isConfigOpen || config.isEditingConfig;
-          var layout = config.isSidebarOpen ? new Layout("Root")
-                    .SplitColumns(
-                        new Layout("Left"),
-                         new Layout("Right")
-                        .SplitRows(
-                            new Layout("Top"),
-                            new Layout("Bottom")
-                        )) : new Layout("Root")
-                        .SplitColumns(
-                            new Layout("Left"));
-
-          layout["Left"].Update(
-              new Panel(
-                Align.Center(
-                  Renderer.RenderMap(config, true),
-                  VerticalAlignment.Middle))
-              .Border(BoxBorder.None)).MinimumSize((int)(((config.resolution.width + 1) * 2)));
-          if (config.isSidebarOpen)
+          while (!token.IsCancellationRequested)
           {
-            layout["Top"].Update(
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var layout = config.layout == Config.Layout.Map ? new Layout("Root")
+                          .SplitColumns(
+                              new Layout("Left")) : new Layout("Root")
+                      .SplitColumns(
+                          new Layout("Left"),
+                           new Layout("Right")
+                          .SplitRows(
+                              new Layout("Top"),
+                              new Layout("Bottom")
+                          ));
+
+            layout["Left"].Update(
                 new Panel(
                   Align.Center(
-                    new Markup(RenderTooltip()),
-                    VerticalAlignment.Top)).BorderColor(isSidebarSelected ? Color.Red : Color.Default)
-                .Expand());
-            layout["Bottom"].Update(
-                new Panel(
-                  Align.Center(
-                    new Markup($"Running at {1000 / stopwatch.ElapsedMilliseconds} FPS \n {RenderSidebar(config)}"),
-                    VerticalAlignment.Bottom))
-                .Expand());
-          }
-
-          ctx.UpdateTarget(layout);
-          ctx.Refresh();
-
-          stopwatch.Stop();
-
-          // Short delay to control render loop frequency
-          for (int i = 0; i < 100; i++)
-          {
-            if (rerender)
+                    Renderer.RenderMap(config, true),
+                    VerticalAlignment.Middle))
+                .Border(BoxBorder.None)).MinimumSize((int)(((config.resolution.width + 1) * 2)));
+            if (config.layout != Config.Layout.Map)
             {
-              rerender = false;
-              break;
+              layout["Top"].Update(
+                  new Panel(
+                    Align.Center(
+                      new Markup(RenderTooltip()),
+                      VerticalAlignment.Top)).BorderColor(config.sidebarSelected ? Color.Red : Color.Default)
+                  .Expand());
+              layout["Bottom"].Update(
+                  new Panel(
+                    Align.Center(
+                      new Markup($"Running at {1000 / stopwatch.ElapsedMilliseconds} FPS \n {RenderSidebar(config)}"),
+                      VerticalAlignment.Bottom))
+                  .Expand());
             }
-            if (token.IsCancellationRequested)
-              return;
-            await Task.Delay(10);
+            ctx.UpdateTarget(layout);
+            ctx.Refresh();
+
+            stopwatch.Stop();
+
+            // Short delay to control render loop frequency
+            for (int i = 0; i < 100; i++)
+            {
+              if (rerender)
+              {
+                rerender = false;
+                break;
+              }
+              if (token.IsCancellationRequested)
+                return;
+              await Task.Delay(10);
+            }
           }
-        }
-      });
+        });
+      }
+      catch (Exception e)
+      {
+        Console.WriteLine(e);
+      }
     }
-    private static void HandleSidebarKeyPress(ConsoleKeyInfo key)
+    private static void HandleConfigKeyPress(ConsoleKeyInfo key)
     {
-      double step = 32 / (double)(2 << config.zoom);
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
@@ -175,77 +192,68 @@ namespace Core.Rendering
             config.cursorConfigIndex = 0;
           }
           break;
-        case ConsoleKey.Q:
-          cts.Cancel();
-          Environment.Exit(0);
-          break;
-        case ConsoleKey.F:
-          if (config.isEditingConfig || !config.isSidebarOpen)
-            break;
-          config.isSearching = !config.isSearching;
-          break;
-        case ConsoleKey.C:
-          config.isConfigOpen = !config.isConfigOpen;
+        case ConsoleKey.Tab:
+          config.layout = Config.Layout.Search;
           break;
         case ConsoleKey.Enter:
-          if (config.isConfigOpen && config.isEditingConfig)
-          {
-            config.colorScheme[config.colorScheme.ElementAt(config.cursorConfigIndex).Key] = Util.ParseHexColor(config.newConfigValue);
-            config.isEditingConfig = false;
-            config.Save();
-          }
-          else if (config.isConfigOpen && !config.isEditingConfig)
-          {
-            config.isEditingConfig = true;
-            config.newConfigValue = config.colorScheme.ElementAt(config.cursorConfigIndex).Value.ToHex();
-          }
+          // TODO
 
           break;
         case ConsoleKey.Escape:
-
-          if (config.isEditingConfig)
-          {
-            config.isEditingConfig = false;
-            break;
-          }
-          else if (config.isConfigOpen)
-          {
-            config.isConfigOpen = false;
-          }
-          else if (config.isSearching)
-          {
-            config.isSearching = false;
-            query = "";
-          }
-          config.layout = Config.Layout.Map;
+          config.sidebarSelected = false;
           break;
         case ConsoleKey.Backspace:
-          if (query.Length > 0 && config.isSearching)
+          if (config.newConfigValue.Length > 0)
           {
-            query = query.Substring(0, query.Length - 1);
-            config.query = new UserQuery(query);
-          }
-          else if (config.isEditingConfig && config.newConfigValue.Length > 0)
-          {
-            config.newConfigValue = config.newConfigValue.Substring(0, config.newConfigValue.Length - 1);
+            config.newConfigValue = config.newConfigValue.Substring(0, config.cursorConfigIndex - 1) + config.newConfigValue.Substring(config.cursorConfigIndex);
+            config.cursorConfigIndex--;
           }
           break;
         default:
-          if (config.isSearching)
-          {
-            query = query + key.KeyChar.ToString();
-            config.query = new UserQuery(query);
+          config.newConfigValue = config.newConfigValue + key.KeyChar.ToString().ToUpper();
+          break;
+      }
+    }
+    private static void HandleSearchKeyPress(ConsoleKeyInfo key)
+    {
+      switch (key.Key)
+      {
+        case ConsoleKey.LeftArrow:
+          if ( config.cursorConfigIndex > 0) {
+            config.cursorConfigIndex--;
           }
-          else if (config.isEditingConfig)
-          {
-            config.newConfigValue = config.newConfigValue + key.KeyChar.ToString().ToUpper();
+          break;
+        case ConsoleKey.RightArrow:
+          if ( config.cursorConfigIndex < config.userQuery.Length) {
+            config.cursorConfigIndex++;
           }
+          break;
+        case ConsoleKey.Tab:
+          config.layout = Config.Layout.Config;
+          break;
+        case ConsoleKey.Escape:
+          config.sidebarSelected = false;
+          break;
+        case ConsoleKey.Backspace:
+          if (config.userQuery.Length > 0)
+          {
+            config.userQuery = config.userQuery.Substring(0, config.userQuery.Length - 1);
+            config.cursorConfigIndex--;
+          }
+          config.query = new UserQuery(config.userQuery);
+          rerender = true;
+          break;
+        default:
+          config.userQuery = config.userQuery + key.KeyChar.ToString().ToUpper();
+          config.query = new UserQuery(config.userQuery);
+          rerender = true;
+          config.cursorConfigIndex++;
           break;
       }
     }
     static void HandleMapKeyPress(ConsoleKeyInfo key)
     {
-       double step = 32 /(double)( 2 << config.zoom);
+      double step = 32 / (double)(2 << config.zoom);
 
       switch (key.Key)
       {
@@ -265,37 +273,34 @@ namespace Core.Rendering
           cts.Cancel();
           Environment.Exit(0);
           break;
-        case ConsoleKey.F:
-          config.layout = config.layout == Config.Layout.Map ? Config.Layout.Search : Config.Layout.Map;
-          config.isSearching = !config.isSearching;
-          break;
-        case ConsoleKey.C:
-          config.layout = config.layout == Config.Layout.Map ? Config.Layout.Config : Config.Layout.Map;
-          config.isConfigOpen = !config.isConfigOpen;
+        case ConsoleKey.Tab:
+          if (config.layout != Config.Layout.Map)
+          {
+            config.sidebarSelected = true;
+          }
           break;
         case ConsoleKey.H:
-          config.isSidebarOpen = !config.isSidebarOpen;
-          if (!config.isSidebarOpen)
+          if (config.layout != Config.Layout.Map)
           {
-            query = query + key.KeyChar.ToString();
-            config.query = new UserQuery(query);
+            config.layout = Config.Layout.Map;
             config.resolution = ((short)((AnsiConsole.Profile.Width - 1) / 2), (short)AnsiConsole.Profile.Height);
           }
           else
           {
+            config.layout = Config.Layout.Search;
             config.resolution = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height);
           }
+          config.sidebarSelected = false;
           rerender = true;
           break;
+        case ConsoleKey.Add:
+          config.zoom++;
+          break;
+        case ConsoleKey.Subtract:
+          config.zoom--;
+          break;
+
         default:
-          if (key.KeyChar == '-')
-          {
-            config.zoom--;
-          }
-          else if (key.KeyChar == '+')
-          {
-            config.zoom++;
-          }
           break;
       }
     }

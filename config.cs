@@ -41,21 +41,17 @@ public struct Config
   [JsonPropertyName("hideRegional")]
   public bool hideRegional { get; set; } = true;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
+  public string userQuery { get; set; } = "";
+  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public UserQuery query { get; set; } = new UserQuery();
-  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public bool isSearching { get; set; } = false;
-  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public bool isSidebarOpen { get; set; } = true;
-  [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public bool isConfigOpen { get; set; } = false;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public int cursorConfigIndex { get; set; } = 0;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public bool isEditingConfig { get; set; } = false;
+  public bool sidebarSelected { get; set; } = false;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public string newConfigValue { get; set; } = "";
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public Layout layout { get; set; } = Layout.Map;
+  public Layout layout { get; set; } = Layout.Search;
 
 
   public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, Dictionary<string, Rgb24> colorScheme)
