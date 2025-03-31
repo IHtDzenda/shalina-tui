@@ -77,6 +77,9 @@ namespace Core
     }
     public static Rgb24 ParseHexColor(string hex)
     {
+      if(hex[0] == '#'){
+        hex = hex.Substring(1);
+      }
       if (hex == null || hex.Length != 6 || !hex.Substring(1).All(c => "0123456789ABCDEF".Contains(c)))
       {
         throw new ArgumentException("Invalid hex color format.");

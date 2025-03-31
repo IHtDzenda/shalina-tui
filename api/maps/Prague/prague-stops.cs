@@ -124,7 +124,7 @@ public class PidStopResponse
 }
 public class PidStopData : StopsInterface
 {
-  public override async Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config, bool useCache)
+  public override async Task<Stop[]> getStops(BoundingBox boundingBox, Config config, bool useCache)
   {
     var url = "https://data.pid.cz/stops/json/stops.json";
     string date = DateTime.Now.ToString("yyyy-MM-dd");

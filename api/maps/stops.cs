@@ -19,12 +19,12 @@ public class Stop
 public abstract class StopsInterface
 {
   private Stop[] transportsCache;
-  private (LatLng min, LatLng max) boundingBox;
+  private BoundingBox boundingBox;
   private DateTime lastUpdated = DateTime.MinValue;
 
-  public abstract Task<Stop[]> getStops((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true);
+  public abstract Task<Stop[]> getStops(BoundingBox boundingBox, Config config, bool useCache = true);
 
-  public async Task<Stop[]> getData((LatLng min, LatLng max) boundingBox, Config config, bool useCache = true)
+  public async Task<Stop[]> getData(BoundingBox boundingBox, Config config, bool useCache = true)
   {
     if (!useCache)
       return await getStops(boundingBox, config);

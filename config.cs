@@ -24,13 +24,13 @@ public struct Config
     { "water", Color.DarkBlue },
     { "land", Color.Gray },
     { "grass", Color.Green },
-    { "tram", Color.DarkBlue },
-    { "subway", Color.DarkBlue },
-    { "rail", Color.DarkBlue },
-    { "bus", Color.Red },
-    { "ferry", Color.DarkBlue },
-    { "trolleybus", Color.DarkBlue },
-    { "other", Color.DarkBlue }
+    { "tram", Util.ParseHexColor("#7A0603") },
+    { "subway", Color.Purple },
+    { "rail", Util.ParseHexColor("#251E62") },
+    { "bus", Util.ParseHexColor("#007DA8") },
+    { "trolleybus", Color.DarkBlue }, //TODO
+    { "ferry", Util.ParseHexColor("#00B3CB") },
+    { "other", Color.Lime }
   };
   public enum Layout
   {
