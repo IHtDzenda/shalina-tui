@@ -110,14 +110,15 @@ public class PidGeoData : GeoDataInterface
   private static DateTime lastCacheUpdate = DateTime.MinValue;
   static Dictionary<string, RouteType> routeTypeMap = new Dictionary<string, RouteType>
     {
-      { "3", RouteType.Bus },
-      { "11", RouteType.Trolleybus },
-      { "7", RouteType.Ferry },
+      { "0", RouteType.Tram },
       { "1", RouteType.Subway },
       { "2", RouteType.Rail },
-      { "0", RouteType.Tram },
+      { "3", RouteType.Bus },
+      { "4", RouteType.Ferry },
+      { "7", RouteType.CableCar },
+      { "11", RouteType.Trolleybus },
     };
-  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getData((LatLng min, LatLng max) boundingBox, bool useCache, Config config)
+  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getData(BoundingBox boundingBox, bool useCache, Config config)
   {
     if (geoDataCache != null && useCache && geoDataCache.Count > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {
@@ -152,32 +153,35 @@ public class PidGeoData : GeoDataInterface
     };
     PragueGeoDataResponse jsonResponse = JsonSerializer.Deserialize<PragueGeoDataResponse>(content, options);
     int count = jsonResponse.features.Count;
-    if(config.hideRegional)
+    if (config.hideRegional)
       count = jsonResponse.features.Where(f => f.properties.is_regional != "1").Count();
 
     Dictionary<RouteType, Dictionary<string, GeoData>> geoData = new Dictionary<RouteType, Dictionary<string, GeoData>>(Enum.GetValues(typeof(RouteType)).Length);
-    foreach(var type in Enum.GetValues(typeof(RouteType)).Cast<RouteType>()){
+    foreach (var type in Enum.GetValues(typeof(RouteType)).Cast<RouteType>())
+    {
       geoData[type] = new Dictionary<string, GeoData>(jsonResponse.features.Where(// Pre-allocate dictionary for better performance
             feature => routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other) == type).Count());
-        }
-
+    }
     foreach (var feature in jsonResponse.features)
     {
+      var route_type = routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other);
       if (config.hideRegional && feature.properties.is_regional == "1") // Skip regional routes if config says to not show them
         continue;
 
-      if(feature.properties.route_short_name == null) // ????? just in case
+      if (feature.properties.route_short_name == null) // ????? just in case
         continue;
-      geoData[routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other)][feature.properties.route_short_name] = new GeoData
-      {
-        geometry = feature.geometry.coordinates,
-        routeId = feature.properties.route_id,
-        routeNameLong = feature.properties.route_long_name ?? feature.properties.route_short_name,
-        routeColor = Util.ParseHexColor(feature.properties.route_color),
-        routeUrl = feature.properties.route_url,
-        isSubsitute = feature.properties.is_substitute_transport == "1",
-        isNightRoute = feature.properties.is_night == "1"
-      };
+      geoData[route_type][feature.properties.route_short_name] = new GeoData
+      (
+         config,
+         feature.geometry.coordinates,
+         feature.properties.route_id,
+         feature.properties.route_long_name ?? feature.properties.route_short_name,
+         routeTypeMap.GetValueOrDefault(feature.properties.route_type, RouteType.Other),
+         feature.properties.route_url,
+         feature.properties.is_substitute_transport == "1",
+         feature.properties.is_night == "1",
+         route_type == RouteType.Subway ? Util.ParseHexColor(feature.properties.route_color): null
+      );
     }
     geoDataCache = geoData;
     lastCacheUpdate = DateTime.Now;

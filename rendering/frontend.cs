@@ -28,7 +28,6 @@ namespace Core.Rendering
     public static string RenderSearch()
     {
       string search = config.userQuery + " ";
-      Console.Error.WriteLine(config.cursorConfigIndex);
       if (config.userQuery.Length == 0 && !config.sidebarSelected)
         search = "[gray](press tab to focus search)[/]";
       else if (config.sidebarSelected)

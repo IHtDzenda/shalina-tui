@@ -15,7 +15,7 @@ namespace Core.Rendering;
 public static class Renderer
 {
   const int LINE_WIDTH = 1;
-  public delegate void LayerFunction(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox);
+  public delegate void LayerFunction(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox);
 
   static Dictionary<string, LayerFunction> vectorTileLayers = new Dictionary<string, LayerFunction> {
     { "ocean", RenderVectorWater },
@@ -38,7 +38,8 @@ public static class Renderer
   };
 
   static CanvasImageWithText image;
-  private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
+
+  private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
     {
@@ -54,12 +55,13 @@ public static class Renderer
       RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme["water"], layer.Extent, drawingOptions);
     }
   }
-  private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox)
+  private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
       RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme["grass"], layer.Extent, drawingOptions);
   }
-  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
+
+  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, BoundingBox boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
     switch (feature.GeometryType)
     {
@@ -80,7 +82,8 @@ public static class Renderer
     };
 
   }
-  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, (LatLng min, LatLng max) boundingBox, Rgb24 color, ulong extent, byte minPoints, Action<IImageProcessingContext, List<PointF>> operation)
+
+  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, BoundingBox boundingBox, Rgb24 color, ulong extent, byte minPoints, Action<IImageProcessingContext, List<PointF>> operation)
   {
     foreach (var part in feature.Geometry<int>())
     {
@@ -102,7 +105,7 @@ public static class Renderer
   }
 
   // Render data from vector tiles (water, greenspace, etc.) - background
-  private static void RenderVectorTiles(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  private static void RenderVectorTiles(Config config, LatLng coordinate, BoundingBox boundingBox)
   {
     byte zoom = config.zoom > 14 ? (byte)14 : config.zoom;
     (int x, int y)[] tiles = Conversion.GetTiles(coordinate, zoom);
@@ -120,7 +123,7 @@ public static class Renderer
   }
 
   // Render data from geojson files (public transport, etc.) - city specific data(shows routes)
-  private static void RenderGeoData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  private static void RenderGeoData(Config config, LatLng coordinate, BoundingBox boundingBox)
   {
     foreach (var city in cityGeoData)
     {
@@ -134,6 +137,8 @@ public static class Renderer
       foreach (var geoData in geoDataList)
       {
         if (geoData.geometry == null)
+          continue;
+        if (!boundingBox.Overlaps(geoData.boundingBox))
         {
           continue;
         }
@@ -148,7 +153,7 @@ public static class Renderer
     }
   }
   // Render stop data (public transport, etc.) - city specific data(shows stops)
-  private static void RenderStopData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  private static void RenderStopData(Config config, LatLng coordinate, BoundingBox boundingBox)
   {
     foreach (var city in cityStopsData)
     {
@@ -165,7 +170,7 @@ public static class Renderer
   }
 
   // Render live data (public transport, etc.) - city specific data(shows vehicles)
-  private static void RenderLiveData(Config config, LatLng coordinate, (LatLng min, LatLng max) boundingBox)
+  private static void RenderLiveData(Config config, LatLng coordinate, BoundingBox boundingBox)
   {
     foreach (var city in cityLiveData)
     {
@@ -200,7 +205,7 @@ public static class Renderer
     }
 
     LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
-    (LatLng min, LatLng max) boundingBox = Conversion.GetBoundingBox(coord, config.zoom, (image.Width, image.Height));
+    BoundingBox boundingBox = new BoundingBox(coord, config.zoom, (image.Width, image.Height));
     RenderVectorTiles(config, coord, boundingBox);
     if(config.zoom > 9)
       RenderGeoData(config, coord, boundingBox);

@@ -6,7 +6,7 @@ namespace Core.Rendering;
 
 public static class Conversion
 {
-  public static PointF ConvertGPSToPixel(LatLng coord, (LatLng min, LatLng max) boundingBox, (int width, int height) imageSize)
+  public static PointF ConvertGPSToPixel(LatLng coord, BoundingBox boundingBox, (int width, int height) imageSize)
   {
     // Convert lat/lon to x/y based on the bounding box and image size
     int x = (int)((coord.Lng - boundingBox.min.Lng) / (boundingBox.max.Lng - boundingBox.min.Lng) * imageSize.width);
@@ -63,23 +63,5 @@ public static class Conversion
       (centerX, centerY + y),
       (centerX + x, centerY + y)
     };
-  }
-  public static (LatLng min, LatLng max) GetBoundingBox(LatLng center, byte zoom, (int width, int height) imageSize)
-  {
-    // Get the tile coordinates for the center point
-    (int tileX, int tileY) = GetTileFromGPS(center, zoom);
-
-    // Calculate the southwest and northeast corners of the bounding box
-    LatLng southwest = ConvertTileToGPS(tileX, tileY + 1, zoom); // Bottom-left corner
-    LatLng northeast = ConvertTileToGPS(tileX + 1, tileY, zoom); // Top-right corner
-
-    LatLng diff = northeast.Subtract(southwest);
-    if(imageSize.width > imageSize.height)
-      diff.Lat = diff.Lat / ((double)imageSize.width / imageSize.height);
-    else
-      diff.Lng = diff.Lng / ((double)imageSize.height / imageSize.width);
-
-    // Return the minimum and maximum LatLng
-    return (center.Subtract(diff.Divide(2)), center.Add(diff.Divide(2)));
   }
 }

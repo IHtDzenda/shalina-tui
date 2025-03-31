@@ -70,7 +70,7 @@ public class PidLiveData : TransportInterface
       { 2, RouteType.Rail },
       { 0, RouteType.Tram },
     };
-  public override async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports((LatLng min, LatLng max) boundingBox, Config config)
+  public override async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports(BoundingBox boundingBox, Config config)
   {
     string url = "https://mapa.pid.cz/getData.php";
     string jsonData = "{\"action\":\"getData\",\"bounds\":[" + boundingBox.min.Lng + "," + boundingBox.min.Lat + "," + boundingBox.max.Lng + "," + boundingBox.max.Lat +  "],\"dimension\": [1,1],\"openedVehicleWindow\":false,\"show_delay_sections\":false}";
