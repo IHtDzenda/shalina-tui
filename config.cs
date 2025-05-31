@@ -9,6 +9,29 @@ namespace Core;
 
 public struct Config
 {
+  public void UpdateAlignment()
+  {
+    var width = AnsiConsole.Console.Profile.Width / 2;
+    var height = AnsiConsole.Console.Profile.Height;
+
+    if (height > width)
+      this.vertical = true;
+    else
+      this.vertical = false;
+  }
+  public void UpdateResolution()
+  {
+    if (this.vertical)
+    {
+      this.resolution.width = (short)((AnsiConsole.Console.Profile.Width / 2) - 1);
+      this.resolution.height = (short)(((AnsiConsole.Console.Profile.Height * (this.layout == Layout.Map ? 4 : 3)) / 4));
+    }
+    else
+    {
+      this.resolution.width = (short)(((AnsiConsole.Console.Profile.Width * (this.layout == Layout.Map ? 4 : 3)) / 8) - 2);
+      this.resolution.height = (short)AnsiConsole.Console.Profile.Height;
+    }
+  }
   [JsonPropertyName("lat")]
   public double latitude { get; set; } = 50.0753684;
   [JsonPropertyName("lon")]
@@ -17,7 +40,8 @@ public struct Config
   public Byte zoom { get; set; } = 14;
   [JsonPropertyName("resolution")]
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public (short width, short height) resolution { get; set; } = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
+  public (short width, short height) resolution; // Resolution in pixels
+  public bool vertical = false;
   [JsonPropertyName("colorScheme")]
   public Dictionary<string, Rgb24> colorScheme { get; init; } = new Dictionary<string, Rgb24>
   {
@@ -28,7 +52,7 @@ public struct Config
     { "subway", Color.Purple },
     { "rail", Util.ParseHexColor("#251E62") },
     { "bus", Util.ParseHexColor("#007DA8") },
-    { "trolleybus", Color.DarkBlue }, //TODO
+    { "trolleybus", Util.ParseHexColor("80166F") },
     { "ferry", Util.ParseHexColor("#00B3CB") },
     { "other", Color.Lime }
   };
@@ -61,11 +85,13 @@ public struct Config
     this.zoom = zoom;
     this.resolution = resolution;
     this.colorScheme = colorScheme;
+    this.UpdateResolution();
   }
   public Config(double latitude, double longitude)
   {
     this.latitude = latitude;
     this.longitude = longitude;
+    this.UpdateResolution();
   }
   public Config() { }
 
@@ -84,11 +110,13 @@ public struct Config
   {
     if (!System.IO.File.Exists(Core.Util.GetConfigPath()))
     {
-      Config config = new Config();
-      config.Save();
-      return config;
+      Config defaultConfig = new Config();
+      defaultConfig.Save();
+      return defaultConfig;
     }
-    return LoadFromFile(Core.Util.GetConfigPath());
+    var config = LoadFromFile(Core.Util.GetConfigPath());
+    config.UpdateResolution();
+    return config;
   }
   public static Config LoadFromFile(string path)
   {

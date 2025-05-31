@@ -103,36 +103,47 @@ namespace Core.Rendering
     {
       try
       {
-        await AnsiConsole.Live(new Layout("Root")
+        config.UpdateAlignment();
+        var layout = new Layout("Root")
             .SplitColumns(
-                new Layout("Left"),
-                new Layout("Right")
+                new Layout("Map"),
+                new Layout("Bar")
                 .SplitRows(
                     new Layout("Top"),
-                    new Layout("Bottom").Size(2))
-            )).StartAsync(async ctx =>
+                    new Layout("Bottom"))
+            );
+        if (config.vertical)
+        {
+          layout = new Layout("Root")
+              .SplitRows(
+                  new Layout("Map"),
+                  new Layout("Bar")
+                  .SplitColumns(
+                      new Layout("Top"),
+                      new Layout("Bottom"))
+              );
+        }
+        await AnsiConsole.Live(layout).StartAsync(async ctx =>
         {
           while (!token.IsCancellationRequested)
           {
+            config.UpdateResolution();
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            var layout = config.layout == Config.Layout.Map ? new Layout("Root")
-                          .SplitColumns(
-                              new Layout("Left")) : new Layout("Root")
-                      .SplitColumns(
-                          new Layout("Left"),
-                           new Layout("Right")
-                          .SplitRows(
-                              new Layout("Top"),
-                              new Layout("Bottom")
-                          ));
 
-            layout["Left"].Update(
+            if (config.layout == Config.Layout.Map)
+              layout["Bar"].Invisible();
+            else
+              layout["Bar"].Visible();
+
+
+            layout["Map"].Update(
                 new Panel(
                   Align.Center(
                     Renderer.RenderMap(config, true),
                     VerticalAlignment.Middle))
-                .Border(BoxBorder.None)).MinimumSize((int)(((config.resolution.width + 1) * 2)));
+                .Border(BoxBorder.None)).MinimumSize(config.vertical ? config.resolution.height : (config.resolution.width) * 2 + 2);
+
             if (config.layout != Config.Layout.Map)
             {
               layout["Top"].Update(
@@ -145,7 +156,7 @@ namespace Core.Rendering
                   new Panel(
                     Align.Center(
                       new Markup($"Running at {1000 / stopwatch.ElapsedMilliseconds} FPS \n {RenderSidebar(config)}"),
-                      VerticalAlignment.Bottom))
+                      VerticalAlignment.Top))
                   .Expand());
             }
             ctx.UpdateTarget(layout);
@@ -218,12 +229,14 @@ namespace Core.Rendering
       switch (key.Key)
       {
         case ConsoleKey.LeftArrow:
-          if ( config.cursorConfigIndex > 0) {
+          if (config.cursorConfigIndex > 0)
+          {
             config.cursorConfigIndex--;
           }
           break;
         case ConsoleKey.RightArrow:
-          if ( config.cursorConfigIndex < config.userQuery.Length) {
+          if (config.cursorConfigIndex < config.userQuery.Length)
+          {
             config.cursorConfigIndex++;
           }
           break;
@@ -280,15 +293,9 @@ namespace Core.Rendering
           break;
         case ConsoleKey.H:
           if (config.layout != Config.Layout.Map)
-          {
             config.layout = Config.Layout.Map;
-            config.resolution = ((short)((AnsiConsole.Profile.Width - 1) / 2), (short)AnsiConsole.Profile.Height);
-          }
           else
-          {
             config.layout = Config.Layout.Search;
-            config.resolution = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height);
-          }
           config.sidebarSelected = false;
           rerender = true;
           break;
@@ -303,6 +310,6 @@ namespace Core.Rendering
           break;
       }
     }
-
   }
 }
+
