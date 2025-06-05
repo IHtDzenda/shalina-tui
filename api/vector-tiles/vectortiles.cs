@@ -1,4 +1,4 @@
-using Core.Rendering;
+using Core.Geometry;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 
