@@ -2,6 +2,7 @@ using Mapbox.VectorTile.Geometry;
 using Core;
 using Core.Api.Maps;
 using SixLabors.ImageSharp;
+using Core.Geometry;
 
 public class Stop
 {
@@ -16,26 +17,73 @@ public class Stop
   public Color color { get; set; }
 }
 
-public abstract class StopsInterface
+public abstract class StopsDataProvider
 {
-  private Stop[] transportsCache;
+  private Stop[] stopsCache;
   private BoundingBox boundingBox;
-  private DateTime lastUpdated = DateTime.MinValue;
+  private Config config;
+  private bool useDailyCache = true;
 
-  public abstract Task<Stop[]> getStops(BoundingBox boundingBox, Config config, bool useCache = true);
+  private Task cacheTask;
+  private CancellationTokenSource cancellationTokenSource;
 
-  public async Task<Stop[]> getData(BoundingBox boundingBox, Config config, bool useCache = true)
+  public abstract Task<Stop[]> internalGetStopsAsync(BoundingBox boundingBox, Config config, bool useCache = true);
+
+  private async Task CacheLoopAsync(CancellationToken token)
+  {
+    DateTime lastUpdate = DateTime.MinValue;
+    TimeSpan updateInterval = TimeSpan.FromSeconds(60);
+
+    while (!token.IsCancellationRequested)
+    {
+      TimeSpan waitTime = (lastUpdate + updateInterval) - DateTime.Now;
+      if (waitTime > TimeSpan.Zero)
+      {
+        try
+        {
+          await Task.Delay(waitTime, token);
+        }
+        catch (TaskCanceledException)
+        {
+          break; // Exit loop on cancellation
+        }
+      }
+
+      stopsCache = await internalGetStopsAsync(boundingBox, config, useDailyCache);
+      lastUpdate = DateTime.Now;
+    }
+  }
+
+  public async Task<Stop[]> getStops(
+    BoundingBox boundingBox,
+    Config config,
+    bool useCache = false,
+    bool useDailyCache = true)
   {
     if (!useCache)
-      return await getStops(boundingBox, config);
+      return await internalGetStopsAsync(boundingBox, config, useDailyCache);
 
     this.boundingBox = boundingBox;
-    if (transportsCache == null || lastUpdated.Day != DateTime.Now.Day)
+    this.config = config;
+    this.useDailyCache = useDailyCache;
+
+    if (stopsCache == null)
     {
-      transportsCache = await getStops(boundingBox, config);
-      lastUpdated = DateTime.Now;
+      stopsCache = await internalGetStopsAsync(boundingBox, config, useDailyCache);
+
+      if (cacheTask == null || cacheTask.IsCompleted)
+      {
+        cancellationTokenSource = new CancellationTokenSource();
+        cacheTask = Task.Run(() => CacheLoopAsync(cancellationTokenSource.Token));
+      }
     }
-    return transportsCache;
+
+    return stopsCache;
+  }
+
+  public void StopCacheLoop()
+  {
+    cancellationTokenSource?.Cancel();
   }
 }
 

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Geometry;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp;
 
@@ -27,7 +28,7 @@ public class TrafficTypeConvertor : JsonConverter<RouteType>
     {
       "bus" => RouteType.Bus,
       "ferry" => RouteType.Ferry,
-      "train" => RouteType.Rail,
+      "train" => RouteType.Train,
       "tram" => RouteType.Tram,
       "trolleybus" => RouteType.Trolleybus,
       _ => RouteType.Other
@@ -122,9 +123,9 @@ public class PidStopResponse
   [JsonPropertyName("stopGroups")]
   public List<PidStopGroup> StopGroups { get; set; }
 }
-public class PidStopData : StopsInterface
+public class PidStopData : StopsDataProvider
 {
-  public override async Task<Stop[]> getStops(BoundingBox boundingBox, Config config, bool useCache)
+  public override async Task<Stop[]> internalGetStopsAsync(BoundingBox boundingBox, Config config, bool useCache)
   {
     var url = "https://data.pid.cz/stops/json/stops.json";
     string date = DateTime.Now.ToString("yyyy-MM-dd");

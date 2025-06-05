@@ -1,6 +1,7 @@
 using Core.Api.Maps;
 using Core.Api.Maps.Prague;
 using Core.Api.VectorTiles;
+using Core.Geometry;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp;
@@ -23,10 +24,11 @@ public static class Renderer
     { "water", RenderVectorWater },
     { "waterway", RenderVectorWater },
     { "wetland", RenderVectorGreenspace },
+    { "place-label", RenderVectorPlaceLabel },
   };
-  static List<GeoDataInterface> cityGeoData = new List<GeoDataInterface> { new PidGeoData() };
-  static List<StopsInterface> cityStopsData = new List<StopsInterface> { new PidStopData() };
-  static List<TransportInterface> cityLiveData = new List<TransportInterface> { new PidLiveData() };
+  static List<GeoDataProvider> cityGeoData = new List<GeoDataProvider> { new PidGeoData() };
+  static List<StopsDataProvider> cityStopsData = new List<StopsDataProvider> { new PidStopData() };
+  static List<TransportProvider> cityLiveData = new List<TransportProvider> { new PidLiveData() };
 
 
   static DrawingOptions drawingOptions = new DrawingOptions
@@ -103,6 +105,29 @@ public static class Renderer
       image.Mutate(ctx => operation(ctx, points));
     }
   }
+  private static void RenderVectorPlaceLabel(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
+  {
+    for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
+    {
+      VectorTileFeature feature = layer.GetFeature(featureIdx);
+      if (feature.GeometryType != GeomType.POINT)
+        continue;
+      try
+      {
+        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
+        {
+          continue;
+        }
+      }
+      catch { }
+      string name = feature.GetValue("name")?.ToString() ?? "Unknown";
+      LatLng latLng = feature.Geometry<int>().First().First().ToLngLat(zoom, (ulong)tile.x, (ulong)tile.y, layer.Extent);
+      PointF point = Conversion.ConvertGPSToPixel(latLng, boundingBox, (image.Width, image.Height));
+      if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
+        continue;
+      image.AddText(new CanvasText((int)point.X, (int)point.Y, name, Color.Black));
+    }
+  }
 
   // Render data from vector tiles (water, greenspace, etc.) - background
   private static void RenderVectorTiles(Config config, LatLng coordinate, BoundingBox boundingBox)
@@ -127,7 +152,7 @@ public static class Renderer
   {
     foreach (var city in cityGeoData)
     {
-      var data = city.getData(boundingBox, true, config).Result;
+      var data = city.getGeoDataAsync(boundingBox, config).Result;
       List<GeoData> geoDataList = new List<GeoData>();
       foreach (var geoData in data)
       {
@@ -157,7 +182,7 @@ public static class Renderer
   {
     foreach (var city in cityStopsData)
     {
-      Stop[] data = city.getData(boundingBox, config).Result;
+      Stop[] data = city.getStops(boundingBox, config).Result;
       foreach (var stop in data.Where(x => config.query.MatchSingle(x)))
       {
         PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
@@ -174,7 +199,7 @@ public static class Renderer
   {
     foreach (var city in cityLiveData)
     {
-      var data = city.getData(boundingBox, config).Result;
+      var data = city.getTransportDataAsync(boundingBox, config).Result;
       List<Transport> transports = new List<Transport>();
       foreach (var transport in data)
       {

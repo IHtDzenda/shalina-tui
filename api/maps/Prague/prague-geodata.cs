@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Geometry;
 using Mapbox.VectorTile.Geometry;
 
 
@@ -104,7 +105,7 @@ public class CoordinatesConverter : JsonConverter<List<List<LatLng>>>
   }
 }
 
-public class PidGeoData : GeoDataInterface
+public class PidGeoData : GeoDataProvider
 {
   private static Dictionary<RouteType, Dictionary<string, GeoData>> geoDataCache;
   private static DateTime lastCacheUpdate = DateTime.MinValue;
@@ -112,13 +113,13 @@ public class PidGeoData : GeoDataInterface
     {
       { "0", RouteType.Tram },
       { "1", RouteType.Subway },
-      { "2", RouteType.Rail },
+      { "2", RouteType.Train },
       { "3", RouteType.Bus },
       { "4", RouteType.Ferry },
       { "7", RouteType.CableCar },
       { "11", RouteType.Trolleybus },
     };
-  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getData(BoundingBox boundingBox, bool useCache, Config config)
+  public override async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> internalGetLocationAsync(BoundingBox boundingBox, Config config, bool useCache)
   {
     if (geoDataCache != null && useCache && geoDataCache.Count > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {

@@ -26,9 +26,9 @@ public struct Config
     { "grass", Color.Green },
     { "tram", Util.ParseHexColor("#7A0603") },
     { "subway", Color.Purple },
-    { "rail", Util.ParseHexColor("#251E62") },
+    { "train", Util.ParseHexColor("#251E62") },
     { "bus", Util.ParseHexColor("#007DA8") },
-    { "trolleybus", Color.DarkBlue }, //TODO
+    { "trolleybus", Util.ParseHexColor("#80166F") },
     { "ferry", Util.ParseHexColor("#00B3CB") },
     { "other", Color.Lime }
   };

@@ -1,4 +1,4 @@
-using Mapbox.VectorTile.Geometry;
+using Core.Geometry;
 
 namespace Core.Api.Maps;
 
@@ -22,43 +22,65 @@ public class Transport
   public TripState state { get; set; }
   public RouteType routeType { get; set; }
 }
-public abstract class TransportInterface
+public abstract class TransportProvider
 {
   private Dictionary<RouteType, Dictionary<string, Transport>> transportsCache;
   private BoundingBox boundingBox;
+  private Config config;
+  private Task cacheTask;
+  private CancellationTokenSource cancellationTokenSource;
 
-  private void CacheThread(Config config)
+  private async Task CacheLoopAsync(CancellationToken token)
   {
-    BoundingBox getExpandedBoundingBox(BoundingBox boundingBox) =>
-      new BoundingBox {
-        min = boundingBox.min.Subtract(boundingBox.max.Subtract(boundingBox.min).Divide(2)),
-        max = boundingBox.max.Add(boundingBox.max.Subtract(boundingBox.min).Divide(2)),
-      };
-    while (true)
+    DateTime lastUpdate = DateTime.MinValue;
+    TimeSpan updateInterval = TimeSpan.FromSeconds(1);
+
+    while (!token.IsCancellationRequested)
     {
-      Thread.Sleep(1000); // TODO: Configurable
-      transportsCache = getData(
-        getExpandedBoundingBox(boundingBox),
-        config,
-        false).Result;
+      TimeSpan waitTime = (lastUpdate + updateInterval) - DateTime.Now;
+      if (waitTime > TimeSpan.Zero)
+      {
+        try
+        {
+          await Task.Delay(waitTime, token);
+        }
+        catch (TaskCanceledException)
+        {
+          break;
+        }
+      }
+
+      transportsCache = await internalGetTransportDataAsync(boundingBox * 2, config);
+      lastUpdate = DateTime.Now;
     }
   }
 
-  public abstract Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports(BoundingBox boundingBox, Config config);
+  public abstract Task<Dictionary<RouteType, Dictionary<string, Transport>>> internalGetTransportDataAsync(BoundingBox boundingBox, Config config);
 
-  public async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getData(BoundingBox boundingBox, Config config, bool useCache = true)
+  public async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransportDataAsync(BoundingBox boundingBox, Config config, bool useCache = true)
   {
     if (!useCache)
-      return await getTransports(boundingBox, config);
+      return await internalGetTransportDataAsync(boundingBox, config);
 
     this.boundingBox = boundingBox;
+    this.config = config;
+
     if (transportsCache == null)
     {
-      transportsCache = await getTransports(boundingBox, config);
-      Thread thread = new Thread(() => CacheThread(config));
-      thread.IsBackground = true;
-      thread.Start();
+      transportsCache = await internalGetTransportDataAsync(boundingBox, config);
+
+      if (cacheTask == null || cacheTask.IsCompleted)
+      {
+        cancellationTokenSource = new CancellationTokenSource();
+        cacheTask = Task.Run(() => CacheLoopAsync(cancellationTokenSource.Token));
+      }
     }
+
     return transportsCache;
+  }
+
+  public void StopCacheLoop()
+  {
+    cancellationTokenSource?.Cancel();
   }
 }

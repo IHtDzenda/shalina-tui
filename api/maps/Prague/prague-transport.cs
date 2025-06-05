@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mapbox.VectorTile.Geometry;
+using Core.Geometry;
 
 namespace Core.Api.Maps.Prague;
 public class PidTransport
@@ -47,7 +47,7 @@ public class PidTransportsResponse
   [JsonPropertyName("trips")]
   public Dictionary<string, PidTransport> Trips { get; set; }
 }
-public class PidLiveData : TransportInterface
+public class PidLiveData : TransportProvider
 {
   private static TripState GetTripState(PidTransport transport)
   {
@@ -63,14 +63,14 @@ public class PidLiveData : TransportInterface
   }
   static Dictionary<int, RouteType> routeTypeMap = new Dictionary<int, RouteType>
     {
-      { 3, RouteType.Bus },
-      { 11, RouteType.Trolleybus },
-      { 7, RouteType.Ferry },
-      { 1, RouteType.Subway },
-      { 2, RouteType.Rail },
       { 0, RouteType.Tram },
+      { 1, RouteType.Subway },
+      { 2, RouteType.Train },
+      { 3, RouteType.Bus },
+      { 7, RouteType.Ferry },
+      { 11, RouteType.Trolleybus },
     };
-  public override async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransports(BoundingBox boundingBox, Config config)
+  public override async Task<Dictionary<RouteType, Dictionary<string, Transport>>> internalGetTransportDataAsync(BoundingBox boundingBox, Config config)
   {
     string url = "https://mapa.pid.cz/getData.php";
     string jsonData = "{\"action\":\"getData\",\"bounds\":[" + boundingBox.min.Lng + "," + boundingBox.min.Lat + "," + boundingBox.max.Lng + "," + boundingBox.max.Lat +  "],\"dimension\": [1,1],\"openedVehicleWindow\":false,\"show_delay_sections\":false}";
