@@ -54,5 +54,14 @@ namespace Core.Api.VectorTiles
       string filePath = DownloadTile(tileX, tileY, zoom);
       return LoadTile(filePath);
     }
+    public static VectorTile GetTile((int tileX, int tileY) tile, byte zoom)
+    {
+      if (zoom > 14)
+      {
+        throw new Exception("Zoom level is too high!");
+      }
+      string filePath = DownloadTile(tile.tileX, tile.tileY, zoom);
+      return LoadTile(filePath);
+    }
   }
 }

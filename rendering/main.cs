@@ -1,7 +1,7 @@
 using Core.Api.Maps;
-using Core.Api.Maps.Prague;
 using Core.Api.VectorTiles;
 using Core.Geometry;
+using Core.Location;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp;
@@ -16,7 +16,7 @@ namespace Core.Rendering;
 public static class Renderer
 {
   const int LINE_WIDTH = 1;
-  public delegate void LayerFunction(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox);
+  public delegate void LayerFunction(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom);
 
   static Dictionary<string, LayerFunction> vectorTileLayers = new Dictionary<string, LayerFunction> {
     { "ocean", RenderVectorWater },
@@ -24,11 +24,8 @@ public static class Renderer
     { "water", RenderVectorWater },
     { "waterway", RenderVectorWater },
     { "wetland", RenderVectorGreenspace },
-    { "place-label", RenderVectorPlaceLabel },
+    // { "place-label", RenderVectorPlaceLabel },
   };
-  static List<GeoDataProvider> cityGeoData = new List<GeoDataProvider> { new PidGeoData() };
-  static List<StopsDataProvider> cityStopsData = new List<StopsDataProvider> { new PidStopData() };
-  static List<TransportProvider> cityLiveData = new List<TransportProvider> { new PidLiveData() };
 
 
   static DrawingOptions drawingOptions = new DrawingOptions
@@ -41,7 +38,7 @@ public static class Renderer
 
   static CanvasImageWithText image;
 
-  private static void RenderVectorWater(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
+  private static void RenderVectorWater(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
     {
@@ -54,30 +51,30 @@ public static class Renderer
         }
       }
       catch { }
-      RenderVectorFeature(feature, tile, zoom, boundingBox, config.colorScheme["water"], layer.Extent, drawingOptions);
+      RenderVectorFeature(config, feature, tile, zoom, config.colorScheme["water"], layer.Extent, drawingOptions);
     }
   }
-  private static void RenderVectorGreenspace(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
+  private static void RenderVectorGreenspace(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
-      RenderVectorFeature(layer.GetFeature(featureIdx), tile, zoom, boundingBox, config.colorScheme["grass"], layer.Extent, drawingOptions);
+      RenderVectorFeature(config, layer.GetFeature(featureIdx), tile, zoom, config.colorScheme["grass"], layer.Extent, drawingOptions);
   }
 
-  private static void RenderVectorFeature(VectorTileFeature feature, (int x, int y) tile, byte zoom, BoundingBox boundingBox, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
+  private static void RenderVectorFeature(Config config, VectorTileFeature feature, (int x, int y) tile, byte zoom, Rgb24 color, ulong extent, DrawingOptions drawingOptions)
   {
     switch (feature.GeometryType)
     {
       case GeomType.POLYGON:
 
-        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 3, (ctx, points) => ctx.FillPolygon(drawingOptions, Brushes.Solid(color), points.ToArray()));
+        RenderVectorFeature(feature, tile, zoom, config.boundingBox, color, extent, 3, (ctx, points) => ctx.FillPolygon(drawingOptions, Brushes.Solid(color), points.ToArray()));
         break;
       case GeomType.LINESTRING:
-        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 2, (ctx, points) => ctx.DrawLine(drawingOptions, Brushes.Solid(color), LINE_WIDTH, points.ToArray()));
+        RenderVectorFeature(feature, tile, zoom, config.boundingBox, color, extent, 2, (ctx, points) => ctx.DrawLine(drawingOptions, Brushes.Solid(color), LINE_WIDTH, points.ToArray()));
         break;
 
       case GeomType.POINT:
-        RenderVectorFeature(feature, tile, zoom, boundingBox, color, extent, 1, (ctx, points) => ctx.Fill(drawingOptions,  Brushes.Solid(color), new EllipsePolygon(points[0], LINE_WIDTH)));
-            break;
+        RenderVectorFeature(feature, tile, zoom, config.boundingBox, color, extent, 1, (ctx, points) => ctx.Fill(drawingOptions, Brushes.Solid(color), new EllipsePolygon(points[0], LINE_WIDTH)));
+        break;
 
       default:
         throw new NotImplementedException("Unknown geometry type");
@@ -105,7 +102,7 @@ public static class Renderer
       image.Mutate(ctx => operation(ctx, points));
     }
   }
-  private static void RenderVectorPlaceLabel(Config config, LatLng coordinate, VectorTileLayer layer, (int x, int y) tile, byte zoom, BoundingBox boundingBox)
+  private static void RenderVectorPlaceLabel(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom)
   {
     for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
     {
@@ -122,7 +119,7 @@ public static class Renderer
       catch { }
       string name = feature.GetValue("name")?.ToString() ?? "Unknown";
       LatLng latLng = feature.Geometry<int>().First().First().ToLngLat(zoom, (ulong)tile.x, (ulong)tile.y, layer.Extent);
-      PointF point = Conversion.ConvertGPSToPixel(latLng, boundingBox, (image.Width, image.Height));
+      PointF point = Conversion.ConvertGPSToPixel(latLng, config.boundingBox, (image.Width, image.Height));
       if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
         continue;
       image.AddText(new CanvasText((int)point.X, (int)point.Y, name, Color.Black));
@@ -130,29 +127,30 @@ public static class Renderer
   }
 
   // Render data from vector tiles (water, greenspace, etc.) - background
-  private static void RenderVectorTiles(Config config, LatLng coordinate, BoundingBox boundingBox)
+  private static void RenderVectorTiles(Config config)
   {
-    byte zoom = config.zoom > 14 ? (byte)14 : config.zoom;
+    var coordinate = config.boundingBox.Center();
+    byte zoom = Math.Min((byte)14, (byte)config.boundingBox.Zoom());
     (int x, int y)[] tiles = Conversion.GetTiles(coordinate, zoom);
     for (int i = 0; i < tiles.Length; i++)
     {
-      VectorTile tile = VectorTiles.GetTile(Conversion.ConvertTileToGPS(tiles[i].x, tiles[i].y, zoom), zoom);
+      VectorTile tile = VectorTiles.GetTile((tiles)[i], zoom);
       foreach (var layer in tile.LayerNames())
       {
         if (vectorTileLayers.ContainsKey(layer))
         {
-          vectorTileLayers[layer](config, coordinate, tile.GetLayer(layer), tiles[i], zoom, boundingBox);
+          vectorTileLayers[layer](config, tile.GetLayer(layer), tiles[i], zoom);
         }
       }
     }
   }
 
   // Render data from geojson files (public transport, etc.) - city specific data(shows routes)
-  private static void RenderGeoData(Config config, LatLng coordinate, BoundingBox boundingBox)
+  private static void RenderGeoData(Config config)
   {
-    foreach (var city in cityGeoData)
+    foreach (var city in config.cityGeoData)
     {
-      var data = city.getGeoDataAsync(boundingBox, config).Result;
+      var data = city.GetGeoDataAsync(config.boundingBox, config).Result;
       List<GeoData> geoDataList = new List<GeoData>();
       foreach (var geoData in data)
       {
@@ -163,7 +161,7 @@ public static class Renderer
       {
         if (geoData.geometry == null)
           continue;
-        if (!boundingBox.Overlaps(geoData.boundingBox))
+        if (!config.boundingBox.Overlaps(geoData.boundingBox))
         {
           continue;
         }
@@ -171,21 +169,21 @@ public static class Renderer
         {
           image.Mutate(ctx =>
           {
-            ctx.DrawLine(drawingOptions, Brushes.Solid(geoData.routeColor), LINE_WIDTH, line.Select(x => Conversion.ConvertGPSToPixel(x, boundingBox, (image.Width, image.Height))).ToArray());
+            ctx.DrawLine(drawingOptions, Brushes.Solid(geoData.routeColor), LINE_WIDTH, line.Select(x => Conversion.ConvertGPSToPixel(x, config.boundingBox, (image.Width, image.Height))).ToArray());
           });
         }
       }
     }
   }
   // Render stop data (public transport, etc.) - city specific data(shows stops)
-  private static void RenderStopData(Config config, LatLng coordinate, BoundingBox boundingBox)
+  private static void RenderStopData(Config config)
   {
-    foreach (var city in cityStopsData)
+    foreach (var city in config.cityStopsData)
     {
-      Stop[] data = city.getStops(boundingBox, config).Result;
+      Stop[] data = city.GetStops(config.boundingBox, config).Result;
       foreach (var stop in data.Where(x => config.query.MatchSingle(x)))
       {
-        PointF point = Conversion.ConvertGPSToPixel(stop.location, boundingBox, (image.Width, image.Height));
+        PointF point = Conversion.ConvertGPSToPixel(stop.location, config.boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
         image.AddText(new CanvasText((int)point.X + 1, (int)point.Y, stop.name, Color.Black));
@@ -195,11 +193,11 @@ public static class Renderer
   }
 
   // Render live data (public transport, etc.) - city specific data(shows vehicles)
-  private static void RenderLiveData(Config config, LatLng coordinate, BoundingBox boundingBox)
+  private static void RenderLiveData(Config config)
   {
-    foreach (var city in cityLiveData)
+    foreach (var city in config.cityLiveData)
     {
-      var data = city.getTransportDataAsync(boundingBox, config).Result;
+      var data = city.GetTransportDataAsync(config.boundingBox, config).Result;
       List<Transport> transports = new List<Transport>();
       foreach (var transport in data)
       {
@@ -211,7 +209,7 @@ public static class Renderer
         if (transport.state == TripState.Inactive || transport.state == TripState.NotPublic) //TODO: Configurable
           continue;
         LatLng location = new LatLng { Lat = transport.lat, Lng = transport.lon };
-        PointF point = Conversion.ConvertGPSToPixel(location, boundingBox, (image.Width, image.Height));
+        PointF point = Conversion.ConvertGPSToPixel(location, config.boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
           continue;
         image.AddText(new CanvasText((int)point.X, (int)point.Y, transport.lineName, Color.Black));
@@ -219,7 +217,7 @@ public static class Renderer
       }
     }
   }
-  public static CanvasImageWithText RenderMap(Config config, bool renderLive)
+  public static async Task<CanvasImageWithText> RenderMapAsync(Config config, bool renderLive)
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
       image = new CanvasImageWithText(new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]));
@@ -229,15 +227,13 @@ public static class Renderer
       image.ClearTexts();
     }
 
-    LatLng coord = new LatLng { Lat = config.latitude, Lng = config.longitude };
-    BoundingBox boundingBox = new BoundingBox(coord, config.zoom, (image.Width, image.Height));
-    RenderVectorTiles(config, coord, boundingBox);
-    if(config.zoom > 9)
-      RenderGeoData(config, coord, boundingBox);
-    if (renderLive && config.zoom > 12)
-      RenderLiveData(config, coord, boundingBox);
-    if(config.zoom > 12)
-      RenderStopData(config, coord, boundingBox);
+
+    RenderVectorTiles(config);
+    if(config.userQuery == "NONE")
+      return image; // Query says to not render anything
+    RenderGeoData(config); //TODO render only if ...
+    RenderLiveData(config);//TODO render only if ...
+    RenderStopData(config);//TODO render only if ...
 
     return image;
   }

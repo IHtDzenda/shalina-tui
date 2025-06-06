@@ -72,8 +72,8 @@ public struct BoundingBox
   }
   public bool Overlaps(BoundingBox other)
   {
-            return this.min.Lng < other.max.Lng && this.max.Lng > other.min.Lng &&
-               this.min.Lat < other.max.Lat && this.max.Lat > other.min.Lat;
+    return this.min.Lng < other.max.Lng && this.max.Lng > other.min.Lng &&
+       this.min.Lat < other.max.Lat && this.max.Lat > other.min.Lat;
   }
   public LatLng Center()
   {
@@ -83,7 +83,29 @@ public struct BoundingBox
       Lng = (this.min.Lng + this.max.Lng) / 2
     };
   }
-  public static BoundingBox operator* (BoundingBox self, double factor)
+
+  public double Zoom()
+  {
+    double lngSpan = this.max.Lng - this.min.Lng % 360;
+    double latSpan = this.max.Lat - this.min.Lat % 360;
+
+    // 360 degrees is the width of the world, so we compare it to the current width
+    double zoom = Math.Min(Math.Log2(360.0 / lngSpan), Math.Log2(360.0 / latSpan));
+    return zoom;
+  }
+
+  public static BoundingBox operator +(BoundingBox self, LatLng offset){
+    self.min = self.min.Add(offset);
+    self.max = self.max.Add(offset);
+    return self;
+  }
+  public static BoundingBox operator -(BoundingBox self, LatLng offset){
+    self.min = self.min.Subtract(offset);
+    self.max = self.max.Subtract(offset);
+    return self;
+  }
+
+  public static BoundingBox operator *(BoundingBox self, double factor)
   {
     var center = self.Center();
     var diff = self.max.Subtract(self.min).Multiply(factor / 2);
@@ -93,7 +115,80 @@ public struct BoundingBox
       max = center.Add(diff)
     };
   }
-  public override String ToString(){
+  public static BoundingBox operator / (BoundingBox self, double factor)
+  {
+    var center = self.Center();
+    var diff = self.max.Subtract(self.min).Divide(factor * 2);
+    return new BoundingBox
+    {
+      min = center.Subtract(diff),
+      max = center.Add(diff)
+    };
+  }
+  /// <summary>
+  /// Calculates the ratio of the bounding box's width to its height.
+  /// The width is defined as the difference in longitude, and the height as the difference in latitude.
+  /// If either dimension is zero, an exception is thrown.
+  /// </summary>
+  /// <returns>
+  /// The ratio of width to height.
+  /// </returns>
+  /// <exception cref="ArgumentException">
+  /// Thrown when the bounding box has zero width or height.
+  /// </exception>
+  public double Ratio()
+  {
+    double lngSpan = this.max.Lng - this.min.Lng;
+    double latSpan = this.max.Lat - this.min.Lat;
+
+    if (lngSpan == 0 || latSpan == 0)
+      throw new ArgumentException("BoundingBox has zero width or height.");
+
+    return lngSpan / latSpan;
+  }
+  public void ExpandToRatio(double ratio)
+  {
+    double currentRatio = this.Ratio();
+    if (currentRatio > ratio)
+    {
+      // Too wide, adjust height
+      double newHeight = (this.max.Lng - this.min.Lng) / ratio;
+      double centerLat = (this.max.Lat + this.min.Lat) / 2;
+      this.min = new LatLng { Lat = centerLat - newHeight / 2, Lng = this.min.Lng };
+      this.max = new LatLng { Lat = centerLat + newHeight / 2, Lng = this.max.Lng };
+    }
+    else if (currentRatio < ratio)
+    {
+      // Too tall, adjust width
+      double newWidth = (this.max.Lat - this.min.Lat) * ratio;
+      double centerLng = (this.max.Lng + this.min.Lng) / 2;
+      this.min = new LatLng { Lat = this.min.Lat, Lng = centerLng - newWidth / 2 };
+      this.max = new LatLng { Lat = this.max.Lat, Lng = centerLng + newWidth / 2 };
+    }
+  }
+  public void ShrinkToRatio(double ratio)
+  {
+    double currentRatio = this.Ratio();
+    if (currentRatio > ratio)
+    {
+      // Too wide, adjust height
+      double newHeight = (this.max.Lng - this.min.Lng) / ratio;
+      double centerLat = (this.max.Lat + this.min.Lat) / 2;
+      this.min = new LatLng{Lat = centerLat - newHeight / 2, Lng = this.min.Lng};
+      this.max = new LatLng{Lat = centerLat + newHeight / 2, Lng = this.max.Lng};
+    }
+    else if (currentRatio < ratio)
+    {
+      // Too tall, adjust width
+      double newWidth = (this.max.Lat - this.min.Lat) * ratio;
+      double centerLng = (this.max.Lng + this.min.Lng) / 2;
+      this.min = new LatLng{Lat = this.min.Lat, Lng = centerLng - newWidth / 2};
+      this.max = new LatLng{Lat = this.max.Lat, Lng = centerLng + newWidth / 2};
+    }
+  }
+
+  public override String ToString()
+  {
     return $"({this.min}) - ({this.max})";
   }
 }
@@ -142,20 +237,21 @@ public static class Conversion
 
     return new LatLng { Lat = centerLat, Lng = centerLng };
   }
-  public static (int, int)[] GetTiles(LatLng coord, byte zoom)
+  public static (int, int)[] GetTiles(LatLng coord, byte zoom, byte radius = 1)
   {
-    LatLng center = GetTileCenter(coord, zoom);
-    int x = center.Lng > coord.Lng ? -1 : 1;
-    int y = center.Lat > coord.Lat ? 1 : -1;
+    // Get the center tile coordinates for the given LatLng and zoom level
+    (int centerX, int centerY) = GetTileFromGPS(coord, zoom);
 
-    (int centerX, int centerY) = GetTileFromGPS(center, zoom);
-    // Calculate the coordinates of the surrounding tiles
-    return new (int, int)[]
+    // Calculate the surrounding tiles based on the radius
+    List<(int, int)> tiles = new List<(int, int)>();
+    for (int x = -radius; x <= radius; x++)
     {
-      (centerX, centerY),
-      (centerX + x, centerY),
-      (centerX, centerY + y),
-      (centerX + x, centerY + y)
-    };
+      for (int y = -radius; y <= radius; y++)
+      {
+        tiles.Add((centerX + x, centerY + y));
+      }
+    }
+
+    return tiles.ToArray();
   }
 }

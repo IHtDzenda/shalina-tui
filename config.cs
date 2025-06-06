@@ -1,23 +1,50 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Api.Maps;
+using Core.Api.Maps.Prague;
+using Core.Geometry;
 using Core.Rendering.Search;
+using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp.PixelFormats;
 using Spectre.Console;
 using Color = SixLabors.ImageSharp.Color;
 
 namespace Core;
 
+public struct Resolution
+{
+  public short width { get; set; }
+  public short height { get; set; }
+
+  public Resolution(short width, short height)
+  {
+    this.width = width;
+    this.height = height;
+  }
+
+  public double Ratio()
+  {
+    return (double)width / height;
+  }
+
+  public static implicit operator Resolution((short, short) v)
+  {
+    return new Resolution(v.Item1, v.Item2);
+  }
+  public static implicit operator (short, short)(Resolution v)
+  {
+    return (v.width, v.height);
+  }
+}
 public struct Config
 {
-  [JsonPropertyName("lat")]
-  public double latitude { get; set; } = 50.0753684;
-  [JsonPropertyName("lon")]
-  public double longitude { get; set; } = 14.4050773;
+  [JsonPropertyName("view")]
+  public BoundingBox boundingBox = new BoundingBox(new LatLng { Lat = 50.0753684, Lng = 14.4050773 }, 14, (1, 1));
   [JsonPropertyName("zoom")]
   public Byte zoom { get; set; } = 14;
   [JsonPropertyName("resolution")]
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
-  public (short width, short height) resolution { get; set; } = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
+  public Resolution resolution { get; set; } = ((short)(AnsiConsole.Profile.Width / 3), (short)AnsiConsole.Profile.Height); // Resolution in pixels
   [JsonPropertyName("colorScheme")]
   public Dictionary<string, Rgb24> colorScheme { get; init; } = new Dictionary<string, Rgb24>
   {
@@ -39,7 +66,7 @@ public struct Config
     Config
   }
   [JsonPropertyName("hideRegional")]
-  public bool hideRegional { get; set; } = true;
+  public bool hideRegional { get; set; } = false;
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
   public string userQuery { get; set; } = "";
   [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
@@ -54,19 +81,22 @@ public struct Config
   public Layout layout { get; set; } = Layout.Search;
 
 
-  public Config(double latitude, double longitude, (short width, short height) resolution, Byte zoom, Dictionary<string, Rgb24> colorScheme)
+  // Only runtime stuff
+  [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+  public List<GeoDataProvider> cityGeoData = new List<GeoDataProvider> { new PidGeoData() };
+  [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+  public List<StopsDataProvider> cityStopsData = new List<StopsDataProvider> { new PidStopData() };
+  [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+  public List<TransportProvider> cityLiveData = new List<TransportProvider> { new PidLiveData() };
+
+
+  public Config(LatLng center, (short width, short height) resolution, Byte zoom, Dictionary<string, Rgb24> colorScheme)
   {
-    this.latitude = latitude;
-    this.longitude = longitude;
-    this.zoom = zoom;
+    this.boundingBox = new BoundingBox(center, zoom, resolution);
     this.resolution = resolution;
     this.colorScheme = colorScheme;
   }
-  public Config(double latitude, double longitude)
-  {
-    this.latitude = latitude;
-    this.longitude = longitude;
-  }
+
   public Config() { }
 
   static JsonSerializerOptions jsonOptions = new JsonSerializerOptions

@@ -27,7 +27,7 @@ public abstract class StopsDataProvider
   private Task cacheTask;
   private CancellationTokenSource cancellationTokenSource;
 
-  public abstract Task<Stop[]> internalGetStopsAsync(BoundingBox boundingBox, Config config, bool useCache = true);
+  public abstract Task<Stop[]> InternalGetStopsAsync(BoundingBox boundingBox, Config config, bool useCache = true);
 
   private async Task CacheLoopAsync(CancellationToken token)
   {
@@ -49,19 +49,19 @@ public abstract class StopsDataProvider
         }
       }
 
-      stopsCache = await internalGetStopsAsync(boundingBox, config, useDailyCache);
+      stopsCache = await InternalGetStopsAsync(boundingBox, config, useDailyCache);
       lastUpdate = DateTime.Now;
     }
   }
 
-  public async Task<Stop[]> getStops(
+  public async Task<Stop[]> GetStops(
     BoundingBox boundingBox,
     Config config,
     bool useCache = false,
     bool useDailyCache = true)
   {
     if (!useCache)
-      return await internalGetStopsAsync(boundingBox, config, useDailyCache);
+      return await InternalGetStopsAsync(boundingBox, config, useDailyCache);
 
     this.boundingBox = boundingBox;
     this.config = config;
@@ -69,7 +69,7 @@ public abstract class StopsDataProvider
 
     if (stopsCache == null)
     {
-      stopsCache = await internalGetStopsAsync(boundingBox, config, useDailyCache);
+      stopsCache = await InternalGetStopsAsync(boundingBox, config, useDailyCache);
 
       if (cacheTask == null || cacheTask.IsCompleted)
       {
