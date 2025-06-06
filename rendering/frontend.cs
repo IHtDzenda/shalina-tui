@@ -1,4 +1,8 @@
+using Core.Geometry;
+using Core.Location;
+using Core.Location.CDWiFi;
 using Core.Rendering.Search;
+using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp.PixelFormats;
 using Spectre.Console;
 using System.Diagnostics;
@@ -12,6 +16,13 @@ namespace Core.Rendering
     static bool rerender = false;
     static CancellationTokenSource cts = new CancellationTokenSource();
     static Config config = Config.Load();
+
+    static List<LocationGetter> locationGetters = new List<LocationGetter> { new FindLine() };
+    static int locationGetterIndex = 0;
+    static BoundingBox oldBoundingBox = config.boundingBox;
+    static string oldUserQuery = config.userQuery;
+
+
 
     public static string RenderTooltip()
     {
@@ -32,10 +43,10 @@ namespace Core.Rendering
         search = "[gray](press tab to focus search)[/]";
       else if (config.sidebarSelected)
       {
-        search = "[red]" + search.Substring(0, config.cursorConfigIndex) + "[red on white]" + search[config.cursorConfigIndex] + "[/]" + search.Substring(config.cursorConfigIndex + 1) + "[/]";
+        search = "[red]" + Markup.Escape(search.Substring(0, config.cursorConfigIndex)) + "[red on white]" + Markup.Escape(new String(search[config.cursorConfigIndex], 1)) + "[/]" + Markup.Escape(search.Substring(config.cursorConfigIndex + 1)) + "[/]";
       }
       else
-        search = $"[gray]{config.userQuery}[/]";
+        search = $"[gray]{Markup.Escape(config.userQuery)}[/]";
 
       return $"Search and filter connections \n-> {search}";
     }
@@ -116,6 +127,26 @@ namespace Core.Rendering
           {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
+
+            if (locationGetterIndex >= 0 && locationGetterIndex < locationGetters.Count
+              && (config.userQuery != oldUserQuery)
+                )
+            {
+              oldUserQuery = config.userQuery;
+
+              var location = await locationGetters[locationGetterIndex].GetLocationAsync(config, false);
+              if (location != null)
+              {
+                oldBoundingBox = config.boundingBox;
+                config.boundingBox = location.boundingBox.Value * 1.25;
+                config.boundingBox.ExpandToRatio(config.resolution.Ratio());
+              }
+              else if (config.userQuery.Length == 0)
+              {
+                config.boundingBox = oldBoundingBox;
+              }
+            }
+
             var layout = config.layout == Config.Layout.Map ? new Layout("Root")
                           .SplitColumns(
                               new Layout("Left")) : new Layout("Root")
@@ -127,12 +158,14 @@ namespace Core.Rendering
                               new Layout("Bottom")
                           ));
 
+
             layout["Left"].Update(
                 new Panel(
                   Align.Center(
-                    Renderer.RenderMap(config, true),
+                    await Renderer.RenderMapAsync(config, true),
                     VerticalAlignment.Middle))
                 .Border(BoxBorder.None)).MinimumSize((int)(((config.resolution.width + 1) * 2)));
+
             if (config.layout != Config.Layout.Map)
             {
               layout["Top"].Update(
@@ -218,12 +251,14 @@ namespace Core.Rendering
       switch (key.Key)
       {
         case ConsoleKey.LeftArrow:
-          if ( config.cursorConfigIndex > 0) {
+          if (config.cursorConfigIndex > 0)
+          {
             config.cursorConfigIndex--;
           }
           break;
         case ConsoleKey.RightArrow:
-          if ( config.cursorConfigIndex < config.userQuery.Length) {
+          if (config.cursorConfigIndex < config.userQuery.Length)
+          {
             config.cursorConfigIndex++;
           }
           break;
@@ -252,21 +287,21 @@ namespace Core.Rendering
     }
     static void HandleMapKeyPress(ConsoleKeyInfo key)
     {
-      double step = 32 / (double)(2 << config.zoom);
+      double step = 32 / (double)(Math.Pow(2, config.boundingBox.Zoom()));
 
       switch (key.Key)
       {
         case ConsoleKey.UpArrow:
-          config.latitude += step;
+          config.boundingBox = config.boundingBox + new LatLng { Lat = step, Lng = 0.0 };
           break;
         case ConsoleKey.DownArrow:
-          config.latitude -= step;
+          config.boundingBox = config.boundingBox - new LatLng { Lat = step, Lng = 0.0 };
           break;
         case ConsoleKey.LeftArrow:
-          config.longitude -= step;
+          config.boundingBox = config.boundingBox - new LatLng { Lat = 0.0, Lng = step };
           break;
         case ConsoleKey.RightArrow:
-          config.longitude += step;
+          config.boundingBox = config.boundingBox + new LatLng { Lat = 0.0, Lng = step };
           break;
         case ConsoleKey.Q:
           cts.Cancel();
@@ -292,11 +327,12 @@ namespace Core.Rendering
           config.sidebarSelected = false;
           rerender = true;
           break;
+
         case ConsoleKey.Add:
-          config.zoom++;
+          config.boundingBox = config.boundingBox / 1.5;
           break;
         case ConsoleKey.Subtract:
-          config.zoom--;
+          config.boundingBox = config.boundingBox * 1.5;
           break;
 
         default:

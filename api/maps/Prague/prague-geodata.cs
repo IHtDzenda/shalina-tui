@@ -119,7 +119,7 @@ public class PidGeoData : GeoDataProvider
       { "7", RouteType.CableCar },
       { "11", RouteType.Trolleybus },
     };
-  public override async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> internalGetLocationAsync(BoundingBox boundingBox, Config config, bool useCache)
+  public override async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> InternalGetGeoDataAsync(BoundingBox boundingBox, Config config, bool useCache)
   {
     if (geoDataCache != null && useCache && geoDataCache.Count > 0 && lastCacheUpdate.Day == DateTime.Now.Day)
     {

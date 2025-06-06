@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using Core.Geometry;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp.PixelFormats;
-using Color = SixLabors.ImageSharp.Color;
 
 
 namespace Core.Api.Maps;
@@ -109,21 +108,21 @@ public abstract class GeoDataProvider
         }
       }
 
-      geoDataCache = await internalGetLocationAsync(boundingBox, config, useDailyCache);
+      geoDataCache = await InternalGetGeoDataAsync(boundingBox, config, useDailyCache);
       lastUpdate = DateTime.Now;
     }
   }
 
-  public abstract Task<Dictionary<RouteType, Dictionary<string, GeoData>>> internalGetLocationAsync(BoundingBox boundingBox, Config config, bool useCache = true);
+  public abstract Task<Dictionary<RouteType, Dictionary<string, GeoData>>> InternalGetGeoDataAsync(BoundingBox boundingBox, Config config, bool useCache = true);
 
-  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> getGeoDataAsync(
+  public async Task<Dictionary<RouteType, Dictionary<string, GeoData>>> GetGeoDataAsync(
     BoundingBox boundingBox,
     Config config,
-    bool useCache = false,
+    bool useCache = true,
     bool useDailyCache = true)
   {
     if (!useCache)
-      return await internalGetLocationAsync(boundingBox, config, useDailyCache);
+      return await InternalGetGeoDataAsync(boundingBox, config, useDailyCache);
 
     this.boundingBox = boundingBox;
     this.config = config;
@@ -131,7 +130,7 @@ public abstract class GeoDataProvider
 
     if (geoDataCache == null)
     {
-      geoDataCache = await internalGetLocationAsync(boundingBox, config, useDailyCache);
+      geoDataCache = await InternalGetGeoDataAsync(boundingBox, config, useDailyCache);
 
       if (cacheTask == null || cacheTask.IsCompleted)
       {

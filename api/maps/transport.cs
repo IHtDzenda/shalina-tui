@@ -50,24 +50,24 @@ public abstract class TransportProvider
         }
       }
 
-      transportsCache = await internalGetTransportDataAsync(boundingBox * 2, config);
+      transportsCache = await InternalGetTransportDataAsync(boundingBox * 2, config);
       lastUpdate = DateTime.Now;
     }
   }
 
-  public abstract Task<Dictionary<RouteType, Dictionary<string, Transport>>> internalGetTransportDataAsync(BoundingBox boundingBox, Config config);
+  public abstract Task<Dictionary<RouteType, Dictionary<string, Transport>>> InternalGetTransportDataAsync(BoundingBox boundingBox, Config config);
 
-  public async Task<Dictionary<RouteType, Dictionary<string, Transport>>> getTransportDataAsync(BoundingBox boundingBox, Config config, bool useCache = true)
+  public async Task<Dictionary<RouteType, Dictionary<string, Transport>>> GetTransportDataAsync(BoundingBox boundingBox, Config config, bool useCache = true)
   {
     if (!useCache)
-      return await internalGetTransportDataAsync(boundingBox, config);
+      return await InternalGetTransportDataAsync(boundingBox, config);
 
     this.boundingBox = boundingBox;
     this.config = config;
 
     if (transportsCache == null)
     {
-      transportsCache = await internalGetTransportDataAsync(boundingBox, config);
+      transportsCache = await InternalGetTransportDataAsync(boundingBox, config);
 
       if (cacheTask == null || cacheTask.IsCompleted)
       {
