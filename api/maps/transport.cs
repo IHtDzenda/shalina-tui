@@ -24,11 +24,11 @@ public class Transport
 }
 public abstract class TransportProvider
 {
-  private Dictionary<RouteType, Dictionary<string, Transport>> transportsCache;
+  private Dictionary<RouteType, Dictionary<string, Transport>>? transportsCache;
   private BoundingBox boundingBox;
   private Config config;
-  private Task cacheTask;
-  private CancellationTokenSource cancellationTokenSource;
+  private Task? cacheTask;
+  private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
   private async Task CacheLoopAsync(CancellationToken token)
   {

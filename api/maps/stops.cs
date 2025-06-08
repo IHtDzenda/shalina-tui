@@ -57,7 +57,7 @@ public abstract class StopsDataProvider
   public async Task<Stop[]> GetStops(
     BoundingBox boundingBox,
     Config config,
-    bool useCache = false,
+    bool useCache = true,
     bool useDailyCache = true)
   {
     if (!useCache)

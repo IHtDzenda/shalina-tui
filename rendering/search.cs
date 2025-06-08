@@ -4,7 +4,7 @@ using Core.Api.Maps;
 namespace Core.Rendering.Search;
 public class UserQuery
 {
-  List<(bool inversion, string value)> values = new List<(bool,string)>();
+  List<(bool inversion, string value)> values = new List<(bool, string)>();
   private static readonly char[] separators = { ' ', '\t', ',', ';' };
   UserQuery(List<(bool, string)> values)
   {
@@ -38,7 +38,7 @@ public class UserQuery
       {
         if (isLast && !isSeparator)
           searchString += value[i];
-        values.Add((inverted,searchString));
+        values.Add((inverted, searchString));
         searchString = "";
         inverted = false;
         continue;
@@ -46,7 +46,7 @@ public class UserQuery
       searchString += value[i];
     }
   }
-  public UserQuery() {}
+  public UserQuery() { }
 
   public bool MatchSingle(string[] matchValues, int partialMatchStartIdx = 0)
   {
@@ -69,7 +69,7 @@ public class UserQuery
       }
       for (int j = matchValues.Length - partialMatchStartIdx; j < matchValues.Length; j++)
       {
-        if(matchValues[j].Length > 2)
+        if (matchValues[j].Length > 2)
           continue;
         if (CultureInfo.InvariantCulture.CompareInfo.IndexOf(matchValues[j], values[i].value, CompareOptions.IgnoreCase) >= 0)
         {
@@ -96,7 +96,7 @@ public class UserQuery
     // Only the last 1 element is a partial match
     return MatchSingle([data.type.ToString(), data.transport.Key, data.transport.Value.state.ToString(), data.transport.Value.lineName], 0);
   }
-  public bool MatchSingle( Stop data)
+  public bool MatchSingle(Stop data)
   {
     if (data == null)
       return false;
@@ -104,6 +104,36 @@ public class UserQuery
     string[] values = data.lines.SelectMany(x => new string[] { x.type.ToString(), x.name }).ToArray()
       .Concat(new string[] { data.municipality, data.name }).ToArray();
     return MatchSingle(values, 1);
+  }
+  public (List<Stop>, Dictionary<RouteType, Dictionary<string, Transport>>) MatchSingle(Stop[] stops, Dictionary<RouteType, Dictionary<string, Transport>> transports)
+  {
+    if (stops == null || transports == null)
+      return (new List<Stop>(), new Dictionary<RouteType, Dictionary<string, Transport>>());
+
+    List<Stop> matchedStops = stops.Where(x => MatchSingle(x)).ToList();
+    Dictionary<RouteType, Dictionary<string, Transport>> matchedTransports = new Dictionary<RouteType, Dictionary<string, Transport>>();
+    foreach(RouteType type in transports.Keys)
+    {
+      var matchedTransport = transports[type].Where(x => MatchSingle((type, x))).ToDictionary(x => x.Key, x => x.Value);
+      if (matchedTransport.Count > 0)
+        matchedTransports.Add(type, matchedTransport);
+    }
+
+    foreach (var transport in transports)
+    {
+      var matchedTransport = transport.Value.Where(x => MatchSingle((transport.Key, x))).ToDictionary(x => x.Key, x => x.Value);
+      if (matchedTransport.Count > 0)
+        matchedTransports.Add(transport.Key, matchedTransport);
+      foreach (var stop in matchedStops)
+      {
+        if (stop.lines.Any(line => line.type == transport.Key && matchedTransport.ContainsKey(line.name)))
+        {
+          stop.lines = stop.lines.Where(line => line.type != transport.Key || !matchedTransport.ContainsKey(line.name)).ToArray();
+        }
+      }
+    }
+
+    return (matchedStops, matchedTransports);
   }
 }
 

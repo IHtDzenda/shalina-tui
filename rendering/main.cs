@@ -1,7 +1,6 @@
 using Core.Api.Maps;
 using Core.Api.VectorTiles;
 using Core.Geometry;
-using Core.Location;
 using Mapbox.VectorTile;
 using Mapbox.VectorTile.Geometry;
 using SixLabors.ImageSharp;
@@ -24,6 +23,8 @@ public static class Renderer
     { "water", RenderVectorWater },
     { "waterway", RenderVectorWater },
     { "wetland", RenderVectorGreenspace },
+    // { "admin", ShowDebugVectorData },
+    { "water-feature", ShowDebugVectorData },
     // { "place-label", RenderVectorPlaceLabel },
   };
 
@@ -36,7 +37,7 @@ public static class Renderer
     }
   };
 
-  static CanvasImageWithText image;
+  static CanvasImageWithText image = new CanvasImageWithText(new Image<Rgb24>(1, 1, Color.Transparent));
 
   private static void RenderVectorWater(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom)
   {
@@ -45,7 +46,8 @@ public static class Renderer
       VectorTileFeature feature = layer.GetFeature(featureIdx);
       try
       {
-        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
+        if (feature.Layer.Keys.Contains("intermittent") ||
+            feature.Layer.Keys.Contains("tunnel"))
         {
           continue;
         }
@@ -111,7 +113,8 @@ public static class Renderer
         continue;
       try
       {
-        if (feature.GetValue("intermittent") != null || feature.GetValue("tunnel") != null)
+        if (feature.Layer.Keys.Contains("intermittent") ||
+            feature.Layer.Keys.Contains("tunnel"))
         {
           continue;
         }
@@ -126,12 +129,47 @@ public static class Renderer
     }
   }
 
+  private static void ShowDebugVectorData(Config config, VectorTileLayer layer, (int x, int y) tile, byte zoom)
+  {
+    for (int featureIdx = 0; featureIdx < layer.FeatureCount(); featureIdx++)
+    {
+      VectorTileFeature feature = layer.GetFeature(featureIdx);
+      if (feature.GeometryType != GeomType.POLYGON &&
+          feature.GeometryType != GeomType.LINESTRING
+          )
+        continue;
+      if (feature.GetValue("type").ToString() != "weir")
+        continue;
+
+      foreach (var part in feature.Geometry<int>())
+      {
+        List<PointF> points = new List<PointF>();
+        foreach (var geom in part)
+        {
+          LatLng latLng = geom.ToLngLat(zoom, (ulong)tile.x, (ulong)tile.y, layer.Extent);
+          points.Add(Conversion.ConvertGPSToPixel(latLng,
+                  config.boundingBox
+                , (image.Width, image.Height)));
+        }
+        if (points.Count < 2)
+        {
+          continue;
+        }
+        // Draw from points
+        image.AddSubPixelLine(
+          points.Select(p => new PointF(p.X, p.Y)).ToArray(),
+          new Rgb24((byte)(config.colorScheme["water"].R ), (byte)(config.colorScheme["water"].G), (byte)(config.colorScheme["water"].B - 20)) // Darker color for debug
+        );
+      }
+    }
+  }
+
   // Render data from vector tiles (water, greenspace, etc.) - background
   private static void RenderVectorTiles(Config config)
   {
     var coordinate = config.boundingBox.Center();
     byte zoom = Math.Min((byte)14, (byte)config.boundingBox.Zoom());
-    (int x, int y)[] tiles = Conversion.GetTiles(coordinate, zoom);
+    (int x, int y)[] tiles = Conversion.GetTiles(coordinate, zoom, 1);
     for (int i = 0; i < tiles.Length; i++)
     {
       VectorTile tile = VectorTiles.GetTile((tiles)[i], zoom);
@@ -181,7 +219,7 @@ public static class Renderer
     foreach (var city in config.cityStopsData)
     {
       Stop[] data = city.GetStops(config.boundingBox, config).Result;
-      foreach (var stop in data.Where(x => config.query.MatchSingle(x)))
+      foreach (var stop in data.Where(x => config.boundingBox.Contains(x.location)).Where(x => config.query.MatchSingle(x)))
       {
         PointF point = Conversion.ConvertGPSToPixel(stop.location, config.boundingBox, (image.Width, image.Height));
         if (point.X < 0 || point.X >= image.Width || point.Y < 0 || point.Y >= image.Height)
@@ -221,16 +259,12 @@ public static class Renderer
   {
     if (image == null || image.Width != config.resolution.width || image.Height != config.resolution.height)
       image = new CanvasImageWithText(new Image<Rgb24>(config.resolution.width, config.resolution.height, config.colorScheme["land"]));
-    else
-    {
-      image.Image.Mutate(ctx => ctx.Clear(config.colorScheme["land"]));
-      image.ClearTexts();
-    }
+
+ else
+      image.Clear(config.colorScheme["land"]);
 
 
     RenderVectorTiles(config);
-    if(config.userQuery == "NONE")
-      return image; // Query says to not render anything
     RenderGeoData(config); //TODO render only if ...
     RenderLiveData(config);//TODO render only if ...
     RenderStopData(config);//TODO render only if ...

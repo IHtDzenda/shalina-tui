@@ -144,7 +144,7 @@ public class Rgb24JsonSerializerExtension : JsonConverter<Rgb24>
       throw new JsonException("Expected a string.");
     }
 
-    string hex = reader.GetString();
+    string? hex = reader.GetString();
 
     if (hex == null || hex.Length != 7 || hex[0] != '#')
     {
